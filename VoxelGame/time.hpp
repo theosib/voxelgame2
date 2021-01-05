@@ -1,0 +1,5 @@
+
+namespace ref {
+    double currentTime();
+}
+
