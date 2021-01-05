@@ -177,7 +177,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\tim\source\repos\GL;C:\Users\tim\source\repos\stb-master;C:\Users\tim\source\repos\glm-master;C:\Users\tim\source\repos\glfw-3.3.2.bin.WIN64\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\tim\source\repos\VoxelGame\GL;C:\Users\tim\source\repos\stb-master;C:\Users\tim\source\repos\glm-master;C:\Users\tim\source\repos\glfw-3.3.2.bin.WIN64\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -194,7 +194,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\tim\source\repos\GL;C:\Users\tim\source\repos\stb-master;C:\Users\tim\source\repos\glm-master;C:\Users\tim\source\repos\glfw-3.3.2.bin.WIN64\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\tim\source\repos\VoxelGame\GL;C:\Users\tim\source\repos\stb-master;C:\Users\tim\source\repos\glm-master;C:\Users\tim\source\repos\glfw-3.3.2.bin.WIN64\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
