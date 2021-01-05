@@ -131,8 +131,11 @@ void make_entity()
 
 void rotation_test();
 
-
+#if defined(_DEBUG) || defined(__APPLE__)
 int main()
+#else
+int WinMain()
+#endif
 {
     double hide_preview_after = 0;
     std::string selected_block;
