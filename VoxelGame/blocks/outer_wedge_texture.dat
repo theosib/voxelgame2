@@ -1,0 +1,22 @@
+texture-scale: float
+tex:bottom:
+    0 1
+    0 0
+    1 0
+    1 1
+tex:north:
+    0 0
+    1 0
+    1 1
+tex:south:
+    0 1
+    0 0
+    1 0
+tex:west:
+    0 1
+    0 0
+    1 0
+tex:east:
+    1 1
+    0 0
+    1 0

@@ -41,6 +41,8 @@ FileLocator::FileLocator()
         setConfigDir(path);
     }
     std::cout << "Home dir: " << base_config_dir << std::endl;
+#else
+    setConfigDir(".");
 #endif
 }
 

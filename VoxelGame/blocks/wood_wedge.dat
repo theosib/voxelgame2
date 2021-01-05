@@ -1,0 +1,6 @@
+include: wedge_faces
+include: wedge_texture
+include: wedge_collision
+texture: wood
+normals: auto
+solid-faces: bottom north

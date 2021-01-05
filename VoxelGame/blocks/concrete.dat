@@ -1,0 +1,6 @@
+include: cube_faces
+include: uniform_cube_texture
+include: cube_collision
+texture: concrete
+normals: auto
+solid-faces: bottom top west east north south

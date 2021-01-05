@@ -1,0 +1,6 @@
+include: outer_wedge_faces
+include: outer_wedge_texture
+include: outer_wedge_collision
+texture: wood
+normals: auto
+solid-faces: bottom

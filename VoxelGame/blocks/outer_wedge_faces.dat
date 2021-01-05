@@ -1,0 +1,21 @@
+face:bottom:
+    0 0 1
+    0 0 0
+    1 0 0
+    1 0 1
+face:north:
+    1 0 0
+    0 0 0
+    0 1 0 
+face:south:
+    0 1 0
+    0 0 1
+    1 0 1
+face:west:
+    0 1 0
+    0 0 0
+    0 0 1
+face:east:
+    0 1 0
+    1 0 1
+    1 0 0

@@ -1,0 +1,6 @@
+include: slab_faces
+include: slab_texture
+include: slab_collision
+texture: wood
+normals: auto
+solid-faces: bottom

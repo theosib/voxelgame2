@@ -1,0 +1,6 @@
+include: inner_wedge_faces
+include: inner_wedge_texture
+include: inner_wedge_collision
+texture: wood
+normals: auto
+solid-faces: bottom north west

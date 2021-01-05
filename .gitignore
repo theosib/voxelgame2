@@ -1,3 +1,4 @@
 x86/
 VoxelGame/x64/
-
+*.o
+game
