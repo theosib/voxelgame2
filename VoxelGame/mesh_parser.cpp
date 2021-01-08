@@ -126,6 +126,7 @@ void Mesh::loadMesh(const std::string& name)
     std::ifstream infile(fname);
     if (!infile.is_open()) {
         std::cout << "Unable to open " << name << std::endl;
+        exit(0);
         return;
     }
     
@@ -160,6 +161,7 @@ void Mesh::loadMesh(const std::string& name)
                 const char *v = lineValue(line);
                 texture_index = TextureLibrary::instance.lookupIndex(v);
                 std::cout << "Index of texture " << v << " = " << texture_index << std::endl;
+                if (texture_index < 0) exit(0);
             } else if (startsWith(line, "texture-scale:")) {
                 const char *v = lineValue(line);
                 if (startsWith(v, "float")) {

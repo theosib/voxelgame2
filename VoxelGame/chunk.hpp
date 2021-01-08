@@ -9,6 +9,7 @@
 #include "datacontainer.hpp"
 #include "mesh.hpp"
 #include "blocktype.hpp"
+#include <iostream>
 
 class ChunkView;
 
@@ -95,7 +96,11 @@ public:
     
     MeshPtr getMesh(uint16_t index) {
         MeshPtr mp = meshes[index];
-        if (mp) return mp;
+        if (mp) {
+            //std::cout << "Index " << index << " is local mesh\n";
+            return mp;
+        }
+        //std::cout << "Index " << index << " is shared mesh\n";
         BlockType *bt = lookupBlockType(block_storage[index]);
         return bt->getMesh();
     }

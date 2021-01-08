@@ -65,7 +65,7 @@ private:
     static const float rotation_matrices[24][16];
     
 protected:
-    Mesh() : solid_faces(0), translucent(false) { faces.resize(facing::NUM_FACES); }
+    Mesh() : solid_faces(0), translucent(false), texture_index(-1) { faces.resize(facing::NUM_FACES); }
     
 public:
     

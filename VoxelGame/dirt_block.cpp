@@ -116,10 +116,10 @@ void DynamicDirtBlock::updateEvent(Block *block)
     if (neigh[4]) height[2] = height[7] = 1;
     // if (neigh[4]) height[4] = 1;
 
-    height[1] = (height[0] + height[2]) * 0.5;
-    height[3] = (height[0] + height[5]) * 0.5;
-    height[6] = (height[5] + height[7]) * 0.5;
-    height[4] = (height[2] + height[7]) * 0.5;
+    height[1] = (height[0] + height[2]) * 0.5f;
+    height[3] = (height[0] + height[5]) * 0.5f;
+    height[6] = (height[5] + height[7]) * 0.5f;
+    height[4] = (height[2] + height[7]) * 0.5f;
     // height[8] = (height[0] + height[2] + height[5] + height[7]) * 0.25;
     height[8] = 0;
     for (int i=0; i<8; i++) height[8] += height[i];

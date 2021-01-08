@@ -202,7 +202,7 @@ void ChunkView::transIterateBlocks(const BlockPos& center)
         if (!mesh->isTranslucent()) continue; // Skip solid blocks
         
         int shape_tex_id = mesh->getTextureIndex();
-        Renderer *render = new Renderer(TextureLibrary::instance.getTexture(mesh->getTextureIndex()));
+        Renderer *render = new Renderer(TextureLibrary::instance.getTexture(shape_tex_id));
         render->setNeedsLoad();
         render->setCenter(center);
         RenderData *render_data = render->getData();

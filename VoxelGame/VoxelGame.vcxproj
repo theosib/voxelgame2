@@ -26,6 +26,7 @@
     <ClCompile Include="chunk.cpp" />
     <ClCompile Include="chunkview.cpp" />
     <ClCompile Include="datacontainer.cpp" />
+    <ClCompile Include="dirt_block.cpp" />
     <ClCompile Include="entity.cpp" />
     <ClCompile Include="facing.cpp" />
     <ClCompile Include="filelocator.cpp" />

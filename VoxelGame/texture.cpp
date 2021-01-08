@@ -47,6 +47,7 @@ void Texture::load_image_file(const std::string& name)
     if (!data) {
         // XXX Push error up to UI
         std::cerr << "Failed to load image\n";
+        exit(0);
         return;
     }
     std::cout << name << " width=" << width << " height=" << height << " nc=" << nrChannels << std::endl;

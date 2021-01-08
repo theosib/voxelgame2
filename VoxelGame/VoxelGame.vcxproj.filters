@@ -96,6 +96,9 @@
     <ClCompile Include="worldview.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dirt_block.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KHR\khrplatform.h">

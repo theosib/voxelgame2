@@ -8,6 +8,7 @@ Global texture repository
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <iostream>
 
 class Texture {
 private:
@@ -60,6 +61,10 @@ public:
     Texture *lookupTexture(const std::string& name);
     
     Texture *getTexture(int index) {
+        if (index < 0) {
+            std::cout << "Invalid texture index " << index << std::endl;
+            exit(0);
+        }
         return texture_list[index];
     }
     
