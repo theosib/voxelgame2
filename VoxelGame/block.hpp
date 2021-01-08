@@ -27,6 +27,7 @@ struct Block {
     
     // Implementation for this type of block
     BlockType *impl;
+    BlockType *getBlockType() { return impl; }
     
     /*** Visual ***/
     

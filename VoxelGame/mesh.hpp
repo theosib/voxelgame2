@@ -20,9 +20,16 @@ public:
     
     // Building a face
     void computeNormal();
+    void addVertex(float x, float y, float z) {
+        vertices.emplace_back(x, y, z);
+        if (vertices.size() == 3) computeNormal();
+    }
     void addVertex(const glm::vec3& vertex) {
         vertices.push_back(vertex);
         if (vertices.size() == 3) computeNormal();
+    }
+    void addTexCoord(float x, float y) {
+        texcoords.emplace_back(x, y);
     }
     void addTexCoord(const glm::vec2& texcoord) {
         texcoords.push_back(texcoord);

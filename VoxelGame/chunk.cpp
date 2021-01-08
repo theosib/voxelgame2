@@ -6,6 +6,7 @@
 #include "filelocator.hpp"
 #include <fstream>
 #include "time.hpp"
+#include "world.hpp"
 
 Chunk::Chunk(ChunkPos p)
 {
@@ -53,15 +54,15 @@ BlockPtr Chunk::getBlock(const BlockPos& pos)
     uint16_t block_id = block_storage[index];
     if (!block_id) return 0; // Air
     BlockType *bt = lookupBlockType(block_id);
-    // if (!bt) {
-    //     std::cout << "Error: Got null bt for block ID " << block_id << std::endl;
-    //     for (auto i=index2name.begin(); i!=index2name.end(); ++i) {
-    //         std::cout << (*i) << std::endl;
-    //     }
-    //     for (auto i=name2index.begin(); i!=name2index.end(); ++i) {
-    //         std::cout << i->first << " " << i->second << std::endl;
-    //     }
-    // }
+    if (!bt) {
+        std::cout << "Error: Got null bt for block ID " << block_id << std::endl;
+        for (auto i=index2name.begin(); i!=index2name.end(); ++i) {
+            std::cout << (*i) << std::endl;
+        }
+        for (auto i=name2index.begin(); i!=name2index.end(); ++i) {
+            std::cout << i->first << " " << i->second << std::endl;
+        }
+    }
         
     BlockPtr block = Block::makeBlock();
     block->chunk = this;
@@ -141,12 +142,18 @@ void Chunk::updateBlock(const BlockPos& pos)
 void Chunk::updateAllBlocks()
 {
     for (int i=0; i<sizes::chunk_storage_size; i++) {
+        BlockPos p(decodeIndex(i));
+        World::instance.updateBlock(p);
+    }
+#if 0
+    for (int i=0; i<sizes::chunk_storage_size; i++) {
         BlockPtr block = getBlock(i);
         if (block) block->updateEvent();
     }
     
     if (!view) return;
     view->markChunkUpdated();
+#endif
 }
 
 int Chunk::getVisibleFaces(Block *block)

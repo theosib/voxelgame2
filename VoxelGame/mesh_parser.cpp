@@ -66,9 +66,12 @@ void Mesh::addVertices(Face *face, std::vector<float>& values, int key, bool int
 {
     if (key == TEX && int_tex_coords) {
         Texture *tex = TextureLibrary::instance.getTexture(texture_index);
+        // std::cout << "Converting int coordinates: ix=" << texture_index << " name=" << tex->getName() << " size=" << tex->getWidth() << " " << tex->getHeight() << "\n";
         for (int i=0; i<values.size(); i+=2) {
+            // std::cout << values[i] << "," << values[i+1] << " ";
             values[i] /= tex->getWidth();
             values[i+1] /= tex->getHeight();
+            // std::cout << values[i] << "," << values[i+1] << "\n";
         }
     }
     
@@ -132,7 +135,7 @@ void Mesh::loadMesh(const std::string& name)
     bool int_tex_coords = false;
     
     while (std::getline(infile, line)) {
-         //std::cout << line << std::endl;
+         // std::cout << line << std::endl;
         if (line[0] == '#') continue;
         
         if (line[0]==' ' || line[0] == '\t') {
@@ -156,6 +159,7 @@ void Mesh::loadMesh(const std::string& name)
             } else if (startsWith(line, "texture:")) {
                 const char *v = lineValue(line);
                 texture_index = TextureLibrary::instance.lookupIndex(v);
+                std::cout << "Index of texture " << v << " = " << texture_index << std::endl;
             } else if (startsWith(line, "texture-scale:")) {
                 const char *v = lineValue(line);
                 if (startsWith(v, "float")) {

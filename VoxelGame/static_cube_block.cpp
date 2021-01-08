@@ -69,7 +69,7 @@ void register_static_blocks()
     init_static_block("wood_slab");
     init_static_block("wood_diag");
     init_static_block("steel");
-    init_static_block("dirt");
+    // init_static_block("dirt");
     init_static_block("cobblestone");
     init_static_block("stone");
     init_static_block("concrete");
@@ -79,5 +79,8 @@ void register_static_blocks()
     init_static_block("chicken");
     init_static_block("carpet");
     init_static_block("transgray");
+    init_static_block("nfrog");
+    init_static_block("ilmango");
+    init_static_block("numbercube");
 }
 

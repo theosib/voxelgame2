@@ -11,6 +11,7 @@
 #include "worldview.hpp"
 #include "spinlock.hpp"
 #include <deque>
+#include <set>
 
 class World {
 public:
@@ -42,6 +43,10 @@ private:
     std::vector<std::string> block_queue_name;
     
     std::vector<std::shared_ptr<Entity>> entities;
+    
+    //std::unordered_set<BlockPos> block_update_queue_load, block_update_queue_no_load;
+    // std::vector<BlockPos> block_update_queue_load, block_update_queue_no_load;
+    std::set<BlockPos> block_update_queue_load, block_update_queue_no_load;
         
     // XXX invalidate this on unloading
     uint64_t last_chunk_pos[2];
@@ -76,6 +81,25 @@ public:
     }
     
     ~World();
+    
+    void updateBlock(const BlockPos& pos, bool no_load=false) {
+        if (no_load) {
+            block_update_queue_no_load.insert(pos);
+            // block_update_queue_no_load.push_back(pos);
+        } else {
+            block_update_queue_load.insert(pos);
+            // block_update_queue_load.push_back(pos);
+        }
+    }
+    
+    void updateSurroundingBlocks(const BlockPos& pos, bool no_load=false);
+    
+    // void updateBlock(const BlockPos& pos, bool no_load) {
+    //     std::unique_lock<spinlock> lock(update_queue_mutex);
+    //     updateBlockUnlocked(pos, no_load);
+    // }
+    
+    void doBlockUpdates();
             
     Chunk* getChunkUnlocked(const ChunkPos& pos, bool no_load) {
         uint64_t packed = pos.packed();
@@ -143,7 +167,7 @@ public:
     }
     
     void getNeighborBlocks(const BlockPos& pos, BlockPtr *blocks, bool include_self, bool no_load=false);
-    
+    void getSurroundingBlocks(const BlockPos& pos, BlockPtr *blocks, bool include_self, bool no_load=false);
     
     // XXX need no-load versions of get methods
 
@@ -192,6 +216,10 @@ public:
         place_rotation += inc;
         if (place_rotation >= 24) place_rotation = 0;
         if (place_rotation < 0) place_rotation = 23;
+    }
+    
+    void setBlockRotation(int r) {
+        place_rotation = r;
     }
     
     int getBlockRotation() {

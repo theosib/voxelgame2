@@ -289,9 +289,77 @@ void rotate_all_45()
     }
 }
 
+bool compare_rotation(glm::mat4 m, const float *q)
+{
+    float *p = glm::value_ptr(m);
+    for (int i=0; i<16; i++) {
+        if (p[i] != q[i]) return false;
+    }
+    return true;
+}
+
+int find_rotation(glm::mat4 m)
+{
+    for (int r=0; r<24; r++) {
+        if (compare_rotation(m, rotation_matrices[r])) return r;
+    }
+    return -1;
+}
+
+glm::mat4 rotate_identity(glm::vec3 axis, float angle_deg)
+{
+    float an = glm::radians(angle_deg);
+    glm::vec3 ax = glm::normalize(axis);
+    
+    glm::mat4 rot(1.0f);
+    rot = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, -0.5f)) * rot;
+    rot = glm::rotate(glm::mat4(1.0f), an, ax) * rot;
+    rot = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f)) * rot;
+    
+    float *p = glm::value_ptr(rot);
+    for (int i=0; i<16; i++) {
+        p[i] = round(p[i] * 4096.0) / 4096.0;
+    }
+    
+    return rot;
+}
+
+const float axes[][3] = {
+    1, 0, 0,
+    0, 1, 0,
+    0, 0, 1,
+    
+    1, 1, 0,
+    0, 1, 1,
+    1, -1, 0,
+    0, -1, 1,
+    1, 0, 1,
+    -1, 0, 1,
+    
+    1, 1, 1,
+    -1, -1, 1,
+    1, -1, -1,
+    1, -1, 1,
+};
+
+void try_symmetries()
+{
+    for (int ai=0; ai<13; ai++) {
+        glm::vec3 axis = glm::make_vec3(axes[ai]);
+        for (int angle=30; angle<360; angle+=30) {
+            glm::mat4 rot = rotate_identity(axis, angle);
+            int r = find_rotation(rot);
+            if (r >= 0) {
+                std::cout << "axis=" << glm::to_string(axis) << " angle=" << angle << " rnum=" << r << std::endl;
+            }
+        }
+    }
+}
+
 void rotation_test()
 {
-    rotate_all_45();
+    // rotate_all_45();
+    try_symmetries();
     exit(0);
     
     // compute_all_rm();

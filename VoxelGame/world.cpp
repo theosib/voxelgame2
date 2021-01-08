@@ -75,6 +75,7 @@ Chunk* World::loadChunkUnlocked(const ChunkPos& pos)
         chunk = new Chunk(pos);
         bool ok = chunk->load();
         // if (!ok) do world gen
+        chunk->updateAllBlocks();
         
         // XXX is this the best place to do this?
         for (int n=0; n<facing::NUM_FACES; n++) {
@@ -102,24 +103,70 @@ Chunk* World::loadChunkUnlocked(const ChunkPos& pos)
     return chunk;
 }
 
+void World::doBlockUpdates()
+{
+    std::vector<BlockPos> load_pos, no_load_pos;
+    load_pos.insert(load_pos.begin(), block_update_queue_load.begin(), block_update_queue_load.end());
+    no_load_pos.insert(no_load_pos.begin(), block_update_queue_no_load.begin(), block_update_queue_no_load.end());
+    block_update_queue_load.clear();
+    block_update_queue_no_load.clear();
+    
+    std::unique_ptr<Chunk* []> load_chunks(new Chunk *[load_pos.size()]);
+    std::unique_ptr<Chunk* []> no_load_chunks(new Chunk *[no_load_pos.size()]);
+    getChunks(load_pos, load_chunks.get(), false);
+    getChunks(no_load_pos, no_load_chunks.get(), true);
+    
+    for (int i=0; i<load_pos.size(); i++) {
+        Chunk *p = load_chunks[i];
+        if (p) p->updateBlock(load_pos[i]);
+    }
+    
+    for (int i=0; i<no_load_pos.size(); i++) {
+        Chunk *p = no_load_chunks[i];
+        if (p) p->updateBlock(no_load_pos[i]);
+    }
+}
+
+void World::updateSurroundingBlocks(const BlockPos& pos, bool no_load)
+{
+    BlockPos block_pos[10];
+    pos.allSurrounding(block_pos);
+    block_pos[8] = pos.up();
+    block_pos[9] = pos.down();
+    for (int neigh=0; neigh<10; neigh++) {
+        updateBlock(block_pos[neigh]);
+    }    
+}
+
+#if 0
 void World::setBlock(const BlockPos& pos, const std::string& block_name, int rotation)
 {
     // Compute all neighbor block posions
-    BlockPos block_pos[facing::NUM_FACES+1];
-    pos.allNeighbors(block_pos);
-    block_pos[facing::NUM_FACES] = pos;
+    BlockPos block_pos[11];
+    pos.allSurrounding(block_pos);
+    block_pos[8] = pos;
+    block_pos[9] = pos.up();
+    block_pos[10] = pos.down();
     
     // Look up all corresponding chunks
-    Chunk *chunks[facing::NUM_FACES+1];
-    getChunks(block_pos, facing::NUM_FACES+1, chunks);
-    
-    // Mark neighbors for update
-    for (int face=0; face<facing::NUM_FACES; face++) {
-        chunks[face]->updateBlock(block_pos[face]);
-    }
+    Chunk *chunks[11];
+    getChunks(block_pos, 11, chunks);
     
     // Change selected block
-    chunks[facing::NUM_FACES]->setBlock(pos, block_name, rotation);
+    chunks[8]->setBlock(pos, block_name, rotation);
+    
+    // Mark neighbors for update
+    // for (int neigh=0; neigh<11; neigh++) {
+    //     chunks[neigh]->updateBlock(block_pos[neigh]);
+    // }
+}
+#endif
+
+void World::setBlock(const BlockPos& pos, const std::string& block_name, int rotation)
+{
+    Chunk *chunk = getChunk(pos.getChunkPos());
+    chunk->setBlock(pos, block_name, rotation);
+    updateSurroundingBlocks(pos, false);
 }
 
 void World::breakBlock(const BlockPos& pos)
@@ -129,16 +176,10 @@ void World::breakBlock(const BlockPos& pos)
 
 void World::queueBlock(const BlockPos& pos, const std::string& block_name)
 {
-    BlockPos block_pos[facing::NUM_FACES];
-    pos.allNeighbors(block_pos);
-    
     block_queue_pos.push_back(pos);
     block_queue_name.push_back(block_name);
-
-    for (int face=0; face<facing::NUM_FACES; face++) {
-        block_queue_pos.push_back(block_pos[face]);
-        block_queue_name.push_back("[update]");
-    }
+    
+    updateSurroundingBlocks(pos);
     
     if (block_queue_pos.size() > 128) flushBlockQueue();
 }
@@ -153,12 +194,15 @@ void World::flushBlockQueue()
         Chunk *chunk = chunks[i];
         const BlockPos& pos(block_queue_pos[i]);
         const std::string& name(block_queue_name[i]);
-        if (name == "[update]") {
-            chunk->updateBlock(pos);
-        } else {
-            chunk->setBlock(pos, name);
-        }
+        // if (name == "[update]") {
+        //     chunk->updateBlock(pos);
+        // } else {
+        //     chunk->setBlock(pos, name);
+        // }
+        chunk->setBlock(pos, name);
     }
+    
+    doBlockUpdates();    
     
     block_queue_pos.clear();
     block_queue_name.clear();
@@ -201,6 +245,15 @@ void World::getNeighborBlocks(const BlockPos& pos, BlockPtr *blocks, bool includ
     block_pos[facing::NUM_FACES] = pos;
     getBlocks(block_pos, facing::NUM_FACES + (include_self?1:0), blocks, no_load);
 }
+
+void World::getSurroundingBlocks(const BlockPos& pos, BlockPtr *blocks, bool include_self, bool no_load)
+{
+    BlockPos block_pos[9];
+    pos.allSurrounding(block_pos);
+    block_pos[8] = pos;
+    getBlocks(block_pos, 8 + (include_self?1:0), blocks, no_load);
+}
+
 
 void World::findNearestBlock(const glm::dvec3& start, const glm::dvec3& forward, double limit, BlockPos& target, double& dist, int& enter_face)
 {

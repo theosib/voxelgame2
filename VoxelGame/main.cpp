@@ -115,7 +115,7 @@ void test()
 
 
 void register_static_blocks();
-
+void init_dirt_block();
 
 Entity *my_entity = 0;
 void make_entity()
@@ -146,8 +146,14 @@ int WinMain()
     // exit(0);
     
     register_static_blocks();
+    init_dirt_block();
     // World::instance.setBlock(BlockPos(1,0,0), "wood");
-    World::instance.setBlock(BlockPos(0,0,0), "wood");
+    // World::instance.setBlock(BlockPos(0,0,0), "wood");
+    
+    // for (int i=0; i<24; i++) {
+    //     World::instance.setBlock(BlockPos(i*4, 4, 0), "numbercube", 0);
+    //     World::instance.setBlock(BlockPos(i*4, 4, 4), "numbercube", i);
+    // }
 
     // makeSphere();
     
@@ -223,9 +229,10 @@ int WinMain()
         }
         
         if (window.isShowingMenu()) {
+            glClear(GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK);
+            glCullFace(GL_FRONT);   // The geometry of the menu has Y inverted
             double mx, my;
             window.getCursorPos(&mx, &my);
             selected_block = UIElements::instance.drawBlockMenu(window.getWidth(), window.getHeight(), mx, my);
@@ -260,6 +267,7 @@ int WinMain()
                 int inc = window.getScrollDir();
                 if (inc) {
                     World::instance.incBlockRotation(inc);
+                    std::cout << "Rotation: " << World::instance.getBlockRotation() << std::endl;
                     hide_preview_after = now + 2;
                 }
             }
@@ -272,6 +280,9 @@ int WinMain()
         RenderManager::instance.setCamera(model);
         RenderManager::instance.setProjection(projection);
         RenderManager::instance.signalComputeRenders();
+        
+        // XXX These and all other setting of blocks should be done in a block setting thread!
+        World::instance.doBlockUpdates();
 
         // window.next_frame();
         window.swap_buffers();

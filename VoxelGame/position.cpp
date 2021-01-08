@@ -25,6 +25,19 @@ void BlockPos::allNeighbors(BlockPos *npos) const
     }
 }
 
+void BlockPos::allSurrounding(BlockPos *npos) const
+{
+    npos[0] = north().west();
+    npos[1] = north();
+    npos[2] = north().east();
+    npos[3] = west();
+    npos[4] = east();
+    npos[5] = south().west();
+    npos[6] = south();
+    npos[7] = south().east();
+}
+
+
 BlockPosArray BlockPosArray::difference(const BlockPosArray& other) const
 {
     BlockPosArray out;

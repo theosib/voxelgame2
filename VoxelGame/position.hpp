@@ -80,6 +80,7 @@ struct BlockPos {
     }
     
     void allNeighbors(BlockPos *npos) const;
+    void allSurrounding(BlockPos *npos) const;
     
     std::string toString() const;
     

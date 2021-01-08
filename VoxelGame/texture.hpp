@@ -17,6 +17,7 @@ private:
     double inverse_width, inverse_height;
     std::string tex_name;
     unsigned char *data;
+    bool nearest_filter;
     
     void load_image_file(const std::string& name);
     unsigned int openGL_load_texture();
