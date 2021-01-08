@@ -7,7 +7,7 @@ class DynamicDirtBlock : public BlockType {
 private:
     MeshPtr default_mesh;
     std::string name;
-    MeshPtr using_mesh;
+    MeshPtr using_mesh, prev_mesh;
     float saved_height[9];
     
 public:
@@ -91,15 +91,16 @@ void DynamicDirtBlock::updateEvent(Block *block)
         if (using_mesh) {
             // Surrounded on all sides: use default
             block->setMesh(0);
+            prev_mesh = using_mesh;
             using_mesh.reset();
             World::instance.updateSurroundingBlocks(block->pos);
         }
         return;
     }
         
-    for (int i=0; i<8; i++) {
-        if (neigh[i] && neigh[i]->getBlockType() == this) neigh[i].reset();
-    }
+    // for (int i=0; i<8; i++) {
+    //     if (neigh[i] && neigh[i]->getBlockType() == this) neigh[i].reset();
+    // }
     
     float height[9];
     for (int i=0; i<8; i++) height[i] = 0.0625;
@@ -286,6 +287,7 @@ void DynamicDirtBlock::updateEvent(Block *block)
     
     block->setMesh(newMesh);
     memcpy(saved_height, height, sizeof(saved_height));
+    prev_mesh = using_mesh;
     using_mesh = newMesh;
     World::instance.updateSurroundingBlocks(block->pos);
 }

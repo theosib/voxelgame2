@@ -11,7 +11,7 @@
 #include "worldview.hpp"
 #include "spinlock.hpp"
 #include <deque>
-#include <set>
+#include <unordered_set>
 
 class World {
 public:
@@ -38,6 +38,7 @@ private:
     std::unordered_map<uint64_t, Chunk *> chunk_storage;
     std::deque<Chunk *> chunk_unload_queue;
     spinlock storage_mutex;
+    spinlock update_mutex;
     
     std::vector<BlockPos> block_queue_pos;
     std::vector<std::string> block_queue_name;
@@ -46,7 +47,7 @@ private:
     
     //std::unordered_set<BlockPos> block_update_queue_load, block_update_queue_no_load;
     // std::vector<BlockPos> block_update_queue_load, block_update_queue_no_load;
-    std::set<BlockPos> block_update_queue_load, block_update_queue_no_load;
+    std::unordered_set<BlockPos> block_update_queue_load, block_update_queue_no_load;
         
     // XXX invalidate this on unloading
     uint64_t last_chunk_pos[2];
@@ -83,14 +84,18 @@ public:
     ~World();
     
     void updateBlock(const BlockPos& pos, bool no_load=false) {
+        std::unique_lock<spinlock> lock(update_mutex);
         if (no_load) {
             block_update_queue_no_load.insert(pos);
-            // block_update_queue_no_load.push_back(pos);
         } else {
             block_update_queue_load.insert(pos);
-            // block_update_queue_load.push_back(pos);
         }
     }
+    void updateBlocks(const BlockPos *pos, size_t cnt, bool no_load=false);
+    void updateBlocks(const std::vector<BlockPos>& pos, bool no_load=false) {
+        updateBlocks(pos.data(), pos.size(), no_load);
+    }
+    
     
     void updateSurroundingBlocks(const BlockPos& pos, bool no_load=false);
     

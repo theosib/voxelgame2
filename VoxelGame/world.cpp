@@ -103,13 +103,30 @@ Chunk* World::loadChunkUnlocked(const ChunkPos& pos)
     return chunk;
 }
 
+void World::updateBlocks(const BlockPos *pos, size_t count, bool no_load)
+{
+    std::unique_lock<spinlock> lock(update_mutex);
+    if (no_load) {
+        for (int i=0; i<count; i++) {
+            block_update_queue_no_load.insert(pos[i]);
+        }
+    } else {
+        for (int i=0; i<count; i++) {
+            block_update_queue_load.insert(pos[i]);
+        }
+    }
+}
+
 void World::doBlockUpdates()
 {
     std::vector<BlockPos> load_pos, no_load_pos;
-    load_pos.insert(load_pos.begin(), block_update_queue_load.begin(), block_update_queue_load.end());
-    no_load_pos.insert(no_load_pos.begin(), block_update_queue_no_load.begin(), block_update_queue_no_load.end());
-    block_update_queue_load.clear();
-    block_update_queue_no_load.clear();
+    {
+        std::unique_lock<spinlock> lock(update_mutex);
+        load_pos.insert(load_pos.begin(), block_update_queue_load.begin(), block_update_queue_load.end());
+        no_load_pos.insert(no_load_pos.begin(), block_update_queue_no_load.begin(), block_update_queue_no_load.end());
+        block_update_queue_load.clear();
+        block_update_queue_no_load.clear();
+    }
     
     std::unique_ptr<Chunk* []> load_chunks(new Chunk *[load_pos.size()]);
     std::unique_ptr<Chunk* []> no_load_chunks(new Chunk *[no_load_pos.size()]);

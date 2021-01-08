@@ -12,11 +12,11 @@ private:
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> texcoords;
     glm::vec3 normal;
-    int which_face;
+    // int which_face;
     
 public:
-    Face() : which_face(-1) {}
-    Face(int face) : which_face(face) {}
+    Face() {}
+    // Face(int face) : which_face(face) {}
     
     // Building a face
     void computeNormal();
