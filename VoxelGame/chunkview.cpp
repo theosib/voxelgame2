@@ -20,6 +20,18 @@ void ChunkView::markChunkUpdated()
 
 ChunkView::~ChunkView()
 {
+    RenderManager::instance.queueDeleteRenderer(render);
+    RenderManager::instance.queueDeleteRenderer(render_alt);
+    if (trans) {
+        RenderManager::instance.queueDeleteRenderer(*trans);
+        delete trans;
+    }
+    if (trans_alt) {
+        RenderManager::instance.queueDeleteRenderer(*trans_alt);
+        delete trans_alt;
+    }
+
+#if 0    
     for (auto i=render.begin(); i!=render.end(); ++i) {
         if (*i) delete *i;
     }
@@ -38,6 +50,7 @@ ChunkView::~ChunkView()
         }
         delete trans_alt;
     }
+#endif
 }
 
 void ChunkView::updateAllBlockFaces()
@@ -202,7 +215,7 @@ void ChunkView::transIterateBlocks(const BlockPos& center)
         if (!mesh->isTranslucent()) continue; // Skip solid blocks
         
         int shape_tex_id = mesh->getTextureIndex();
-        Renderer *render = new Renderer(TextureLibrary::instance.getTexture(shape_tex_id));
+        Renderer *render = new Renderer(TextureLibrary::instance.getTexture(mesh->getTextureIndex()));
         render->setNeedsLoad();
         render->setCenter(center);
         RenderData *render_data = render->getData();

@@ -8,7 +8,7 @@
 
 class CameraModel {    
     std::mutex camera_mutex;
-    Entity entity;
+    EntityPtr entity;
     double movement_speed;
     
 public:
@@ -31,7 +31,7 @@ public:
     void moveDown(double deltaTime);
     void gameTick(double deltaTime);
     void toggleFly() {
-        entity.setGravity(!entity.hasGravity());
+        entity->setGravity(!entity->hasGravity());
     }
     
     void rotate(double pitch_change, double yaw_change);    
@@ -40,7 +40,7 @@ public:
     
     glm::dvec3 getPos() const {
         // return position;
-        return entity.getCameraPos();
+        return entity->getCameraPos();
     }
     
     const glm::dvec3& getForward() const {

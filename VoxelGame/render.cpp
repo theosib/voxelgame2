@@ -214,7 +214,12 @@ void RenderManager::deleteDeadRendererQueue()
     dead_renderers.clear();
 }
 
-void RenderManager::queueDeleteRenderer(const std::vector<Renderer*>& r) {
+void RenderManager::queueDeleteRenderer(const std::vector<Renderer *>& r) {
     std::unique_lock<std::mutex> lock(dead_renderer_mutex);
     dead_renderers.insert(std::end(dead_renderers), std::begin(r), std::end(r));
+}
+
+void RenderManager::queueDeleteRenderer(Renderer* r) {
+    std::unique_lock<std::mutex> lock(dead_renderer_mutex);
+    dead_renderers.push_back(r);
 }

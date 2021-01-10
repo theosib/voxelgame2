@@ -8,6 +8,9 @@
 #include "render.hpp"
 #include "cameramodel.hpp"
 
+class Entity;
+typedef std::shared_ptr<Entity> EntityPtr;
+
 class Entity {
     geom::EntityBox ebox;
     glm::dvec3 velocity, accel;
@@ -21,7 +24,7 @@ class Entity {
     double yaw; // XXX rotate the mesh
     bool visible;
     MeshPtr mesh;
-    std::shared_ptr<Renderer> render, render_alt;
+    Renderer *render, *render_alt;
     bool visual_modified;
     
     // XXX view
@@ -31,10 +34,13 @@ class Entity {
     }
     
     void computeRender(RenderData *render_data, const BlockPos& center, const glm::dvec3& pos);
+        
+protected:
+    Entity();
     
 public:
     
-    Entity();
+    ~Entity();
     
     void move(const glm::dvec3& motion);
     
@@ -92,7 +98,9 @@ public:
     bool insideFrustum(const glm::mat4& view, const BlockPos& center);
     void draw(Shader *shader, CameraModel *camera);
     
+    static EntityPtr makeEntity() { return EntityPtr(new Entity); }
 };
+
 
 
 #endif

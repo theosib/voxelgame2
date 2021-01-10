@@ -43,7 +43,7 @@ private:
     std::vector<BlockPos> block_queue_pos;
     std::vector<std::string> block_queue_name;
     
-    std::vector<std::shared_ptr<Entity>> entities;
+    std::vector<EntityPtr> entities;
     
     //std::unordered_set<BlockPos> block_update_queue_load, block_update_queue_no_load;
     // std::vector<BlockPos> block_update_queue_load, block_update_queue_no_load;
@@ -135,7 +135,7 @@ public:
     }
     
     void listAllChunks(std::vector<Chunk *>& list);
-    void listAllEntities(std::vector<std::shared_ptr<Entity>>& list);
+    void listAllEntities(std::vector<EntityPtr>& list);
         
     Chunk* getChunk(const ChunkPos& pos, bool no_load=false) {
         std::unique_lock<spinlock> lock(storage_mutex);
@@ -203,8 +203,8 @@ public:
     void saveAll();
     
     
-    void addEntity(Entity *p) {
-        entities.push_back(std::shared_ptr<Entity>(p));
+    void addEntity(EntityPtr p) {
+        entities.push_back(p);
     }
     
     

@@ -26,7 +26,7 @@ void WorldView::computeChunkRenders(const glm::dvec3& camera_pos, const glm::mat
 
 void WorldView::computeEntityRenders(const glm::dvec3& camera_pos, const glm::mat4& projection, CameraModel *camera)
 {    
-    std::vector<std::shared_ptr<Entity>> entities;
+    std::vector<EntityPtr> entities;
     BlockPos center = geom::computeCenter(camera_pos);
     glm::mat4 view_matrix = camera->getViewMatrix(center.X, center.Y, center.Z);
     
@@ -39,7 +39,7 @@ void WorldView::computeEntityRenders(const glm::dvec3& camera_pos, const glm::ma
 void WorldView::draw(CameraModel *camera)
 {
     std::vector<Chunk *> chunks;
-    std::vector<std::shared_ptr<Entity>> entities;
+    std::vector<EntityPtr> entities;
     
     World::instance.listAllChunks(chunks);
     

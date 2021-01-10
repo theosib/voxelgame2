@@ -45,7 +45,7 @@ void World::listAllChunks(std::vector<Chunk *>& list)
     }
 }
 
-void World::listAllEntities(std::vector<std::shared_ptr<Entity>>& list)
+void World::listAllEntities(std::vector<EntityPtr>& list)
 {
     std::unique_lock<spinlock> lock(World::instance.storage_mutex);
     list.assign(entities.begin(), entities.end());
@@ -572,7 +572,7 @@ void World::tickThreadLoop()
 void World::tickEverything(double elapsed_time)
 {
     std::vector<Chunk *> chunks;
-    std::vector<std::shared_ptr<Entity>> entities;
+    std::vector<EntityPtr> entities;
     
     World::instance.listAllChunks(chunks);
     

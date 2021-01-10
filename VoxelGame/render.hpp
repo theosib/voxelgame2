@@ -118,6 +118,7 @@ public:
     
     
     void queueDeleteRenderer(const std::vector<Renderer*>& r);
+    void queueDeleteRenderer(Renderer* r);
     void deleteDeadRendererQueue();
 };
 

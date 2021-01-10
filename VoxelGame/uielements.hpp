@@ -20,7 +20,7 @@ private:
     unsigned int cross_VAO, cross_VBO;
     
     Shader blocklistShader;
-    std::shared_ptr<Renderer> blocklist_render;
+    Renderer *blocklist_render;
     
 public:
     UIElements() : outline_VAO(0), outline_VBO(0), cross_VAO(0), cross_VBO(0),
@@ -28,7 +28,11 @@ public:
         crossShader("vertex_cross.glsl", "fragment_cross.glsl"),
         blocklistShader("vertex_blocklist.glsl", "fragment_blocklist.glsl")
     {
-        blocklist_render.reset(new Renderer(0));
+        blocklist_render = new Renderer(0);
+    }
+    
+    ~UIElements() {
+        RenderManager::instance.queueDeleteRenderer(blocklist_render);
     }
     
     void drawBlockHighlight(CameraModel *camera, const BlockPos& pos, int show_faces);

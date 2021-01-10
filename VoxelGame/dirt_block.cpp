@@ -7,8 +7,8 @@ class DynamicDirtBlock : public BlockType {
 private:
     MeshPtr default_mesh;
     std::string name;
-    MeshPtr using_mesh, prev_mesh;
-    float saved_height[9];
+    // MeshPtr using_mesh; //prev_mesh;
+    // float saved_height[9];
     
 public:
     DynamicDirtBlock();
@@ -26,9 +26,7 @@ public:
 
     virtual const std::string& getName();
     
-    void clear_height() {
-        memset(saved_height, 0, sizeof(saved_height));
-    }
+    float *getHeights(Block *block);
 };
 
 DynamicDirtBlock::DynamicDirtBlock()
@@ -36,7 +34,6 @@ DynamicDirtBlock::DynamicDirtBlock()
     default_mesh = Mesh::makeMesh();
     name = "dirt";
     default_mesh->loadMesh(name);
-    clear_height();
 }
 
 DynamicDirtBlock::~DynamicDirtBlock() {}
@@ -52,6 +49,7 @@ void DynamicDirtBlock::tickEvent(Block *block, int tick_types) {}
 
 void DynamicDirtBlock::placeEvent(Block *block) 
 {
+    std::cout << "Placing block at " << block->pos.toString() << std::endl;
     updateEvent(block);
 }
 
@@ -65,45 +63,63 @@ static bool heights_equal(float *p, float *q)
     return true;
 }
 
+
+float *DynamicDirtBlock::getHeights(Block *block)
+{
+    DataContainerPtr dcp = block->getData(true);
+    float *saved_height = 0;
+    DataItemPtr sh = dcp->getNamedItem("heights");
+    if (!sh) {
+        sh = DataItem::makeFloatArray(9);
+        dcp->setNamedItem("heights", sh);
+        saved_height = sh->getFloatArray();
+        for (int i=0; i<9; i++) saved_height[i] = -1;
+        block->markDataModified();
+    } else {
+        saved_height = sh->getFloatArray();
+    }
+    return saved_height;
+}
+
+
 void DynamicDirtBlock::updateEvent(Block *block)
 {
     // block->setMesh(default_mesh);
     // std::cout << "Update\n";
-    
-#if 0
-    BlockPos npos[8];
-    npos[0] = block->pos.north().west();
-    npos[1] = block->pos.north();
-    npos[2] = block->pos.north().east();
-    npos[3] = block->pos.west();
-    npos[4] = block->pos.east();
-    npos[5] = block->pos.south().west();
-    npos[6] = block->pos.south();
-    npos[7] = block->pos.south().east();
-    BlockPtr neigh[8];
-    World::instance.getBlocks(npos, 8, neigh, World::NoLoad);
-#endif
-    
+        
     BlockPtr neigh[8];
     World::instance.getSurroundingBlocks(block->pos, neigh, false, World::NoLoad);
-            
-    if (neigh[1] && neigh[3] && neigh[4] && neigh[6]) {
-        if (using_mesh) {
+    
+    
+    if (neigh[0] && neigh[2] && neigh[5] && neigh[7]) {
+        if (block->getMesh() != block->getDefaultMesh()) {
             // Surrounded on all sides: use default
             block->setMesh(0);
-            prev_mesh = using_mesh;
-            using_mesh.reset();
+            block->setData(0);
+            // prev_mesh = using_mesh;
             World::instance.updateSurroundingBlocks(block->pos);
         }
         return;
     }
-        
-    // for (int i=0; i<8; i++) {
-    //     if (neigh[i] && neigh[i]->getBlockType() == this) neigh[i].reset();
-    // }
+    
+    for (int i=0; i<8; i++) {
+        if (neigh[i]) {
+            BlockType *bt = neigh[i]->getBlockType();
+            if (bt == this) {
+                if (neigh[i]->getMesh() != neigh[i]->getDefaultMesh()) {
+                    neigh[i].reset();
+                    // std::cout << "Neighbor " << i << " soft dirt\n";
+                } else {
+                    // std::cout << "Neighbor " << i << " solid dirt\n";
+                }
+            } else {
+                // std::cout << "Neighbor " << i << " other block\n";
+            }
+        }
+    }
     
     float height[9];
-    for (int i=0; i<8; i++) height[i] = 0.0625;
+    for (int i=0; i<8; i++) height[i] = 0;
     if (neigh[0]) height[0] = 1;
     if (neigh[2]) height[2] = 1;
     if (neigh[1]) height[0] = height[2] = 1;
@@ -121,13 +137,37 @@ void DynamicDirtBlock::updateEvent(Block *block)
     height[3] = (height[0] + height[5]) * 0.5f;
     height[6] = (height[5] + height[7]) * 0.5f;
     height[4] = (height[2] + height[7]) * 0.5f;
-    // height[8] = (height[0] + height[2] + height[5] + height[7]) * 0.25;
-    height[8] = 0;
-    for (int i=0; i<8; i++) height[8] += height[i];
-    height[8] *= 0.125;
-    if (height[8] < 0.5) height[8] = 0.5;
     
-    if (using_mesh && heights_equal(height, saved_height)) return;
+    if (height[1]>0.1 && height[1]<0.9) height[1] = 0.6;
+    if (height[3]>0.1 && height[3]<0.9) height[3] = 0.6;
+    if (height[6]>0.1 && height[6]<0.9) height[6] = 0.6;
+    if (height[4]>0.1 && height[4]<0.9) height[4] = 0.6;
+    
+    // height[8] = (height[0] + height[2] + height[5] + height[7]) * 0.25;
+    height[8] = 0.6;
+    int n1=0;
+    if (height[0]>0.9) n1++;
+    if (height[2]>0.9) n1++;
+    if (height[5]>0.9) n1++;
+    if (height[7]>0.9) n1++;
+    if (n1==4) height[8] = 1;
+    
+    float *saved_height = getHeights(block);
+    
+    // for (int i=0; i<9; i++) {
+    //     std::cout << " " << height[i];
+    // }
+    // std::cout << std::endl;
+    // for (int i=0; i<9; i++) {
+    //     std::cout << " " << saved_height[i];
+    // }
+    // std::cout << std::endl;
+    
+    if (block->getMesh() != block->getDefaultMesh() && heights_equal(height, saved_height)) {
+        // std::cout << "No mesh change\n";
+        return;
+    }
+    
             
     // Build new mesh
     MeshPtr newMesh = Mesh::makeMesh();
@@ -285,10 +325,10 @@ void DynamicDirtBlock::updateEvent(Block *block)
     f->addTexCoord(0.5, 0.5);
     f->addTexCoord(1, 0);
     
+    memcpy(saved_height, height, sizeof(float) * 9);
+    block->markDataModified();
     block->setMesh(newMesh);
-    memcpy(saved_height, height, sizeof(saved_height));
-    prev_mesh = using_mesh;
-    using_mesh = newMesh;
+    // prev_mesh = using_mesh;
     World::instance.updateSurroundingBlocks(block->pos);
 }
 

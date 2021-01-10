@@ -7,6 +7,7 @@
 #include <fstream>
 #include "time.hpp"
 #include "world.hpp"
+#include <atomic>
 
 Chunk::Chunk(ChunkPos p)
 {
@@ -105,7 +106,8 @@ void Chunk::setBlock(const BlockPos& pos, const std::string& name, int rotation)
     block_rotation[index] = rotation;
     // visible_faces[index] = 0;
     data_containers.erase(index);
-    meshes[index] = 0;
+    std::atomic_store(&meshes[index], MeshPtr(0));
+    // meshes[index].reset();
 
     if (block_id) {
         BlockPtr block = getBlock(pos);
@@ -187,8 +189,15 @@ MeshPtr Chunk::getMesh(Block *block) {
     return getMesh(index);
 }
 
+MeshPtr Chunk::getDefaultMesh(Block *block)
+{
+    int16_t index = block->storage_index;
+    return getDefaultMesh(index);
+}
+
 void Chunk::setMesh(Block *block, MeshPtr mesh) {
-    meshes[block->storage_index] = mesh;
+    std::atomic_store(&meshes[block->storage_index], mesh);
+    // meshes[block->storage_index] = mesh;
     requestVisualUpdate(block);
 }
 
@@ -196,11 +205,20 @@ void Chunk::setMesh(Block *block, MeshPtr mesh) {
 DataContainerPtr Chunk::getDataContainer(Block *block, bool create)
 {
     auto i = data_containers.find(block->storage_index);
-    if (i != data_containers.end()) return i->second;
+    if (i != data_containers.end() && i->second) return i->second;
     if (!create) return 0;
     DataContainerPtr dc = DataContainer::makeContainer();
     data_containers[block->storage_index] = dc;
     return dc;
+}
+
+void Chunk::setDataContainer(Block *block, DataContainerPtr data)
+{
+    if (!data) {
+        data_containers.erase(block->storage_index);
+    } else {
+        data_containers[block->storage_index] = data;
+    }
 }
 
 void Chunk::getCorners(BlockPos *bpos, const BlockPos& center)
@@ -256,7 +274,9 @@ void Chunk::save()
     DataContainerPtr ctrs = DataContainer::makeContainer();
     data->setNamedItem("data", DataItem::wrapContainer(ctrs));
     for (auto i=data_containers.begin(); i!=data_containers.end(); ++i) {
-        ctrs->setIndexedItem(i->first, DataItem::wrapContainer(i->second));
+        if (i->second) {
+            ctrs->setIndexedItem(i->first, DataItem::wrapContainer(i->second));
+        }
     }
     
     // data->debug();

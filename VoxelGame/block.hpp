@@ -13,7 +13,9 @@ Tick types:
 
 class BlockType;
 struct Block;
-typedef std::shared_ptr<Block> BlockPtr;
+
+// BlockPtr's are ephemeral and should not shared across threads, so no need for atomic
+typedef std::shared_ptr<Block> BlockPtr; 
 
 // Descriptor for block instances
 // Created temporarily by Chunk::getBlock
@@ -41,6 +43,7 @@ struct Block {
     // If chunk doesn't have mesh, it automatically gets it from impl
     // Render thread gets mesh directly from chunk
     MeshPtr getMesh() { return chunk->getMesh(this); }
+    MeshPtr getDefaultMesh() { return chunk->getDefaultMesh(this); }
     
     // Stores a mesh into the chunk, replacing previous or default
     // XXX automatically request visual update
@@ -56,7 +59,7 @@ struct Block {
     
     // Requests that this block get redrawn due to visual change (not usually necessary)
     void requestVisualUpdate() { chunk->requestVisualUpdate(this); }
-    
+    void markDataModified() { chunk->markDataModified(); }
     
     /*** Actions ***/
     
@@ -73,6 +76,7 @@ struct Block {
     // Get data container from chunk
     // If container doesn't exist and create is true, then one will be created
     DataContainerPtr getData(bool create) { return chunk->getDataContainer(this, create); }
+    void setData(DataContainerPtr data) { chunk->setDataContainer(this, data); }
     
     // Turn block into data. This is not for disk storage but for moving blocks around.
     // Caller must clear deque

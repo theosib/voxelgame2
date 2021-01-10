@@ -13,7 +13,15 @@ Entity::Entity() {
     accel = glm::dvec3(0,0,0);
     gravity = true;
     on_ground = false;
+    render = 0;
+    render_alt = 0;
     // last_position_update = ref::currentTime();
+}
+
+Entity::~Entity()
+{
+    if (render) RenderManager::instance.queueDeleteRenderer(render);
+    if (render_alt) RenderManager::instance.queueDeleteRenderer(render_alt);
 }
 
 static constexpr double max_y_vel = 50;
@@ -258,9 +266,9 @@ void Entity::computeUpdates(const BlockPos& center, const glm::mat4& projection,
     
     glm::dvec3 pos = ebox.position;
     
-    std::shared_ptr<Renderer> mr1 = render_alt;
+    Renderer* mr1 = render_alt;
     if (!mr1) {
-        mr1 = std::shared_ptr<Renderer>(new Renderer(TextureLibrary::instance.getTexture(mesh->getTextureIndex())));
+        mr1 = new Renderer(TextureLibrary::instance.getTexture(mesh->getTextureIndex()));
         current_pos = pos;
         current_time = ref::currentTime();
     }
@@ -274,8 +282,8 @@ void Entity::computeUpdates(const BlockPos& center, const glm::mat4& projection,
     
     mr1->setNeedsLoad(); // XXX Maybe optional
     
-    std::shared_ptr<Renderer> mr2 = render;
-    if (!mr2) mr2 = std::shared_ptr<Renderer>(new Renderer(TextureLibrary::instance.getTexture(mesh->getTextureIndex())));
+    Renderer* mr2 = render;
+    if (!mr2) mr2 = new Renderer(TextureLibrary::instance.getTexture(mesh->getTextureIndex()));
     
     // Swap updated render into place
     render_alt = mr2;
@@ -306,7 +314,7 @@ void Entity::draw(Shader *shader, CameraModel *camera)
     static constexpr double frame = 1.0 / 60.0;
     if (!visible) return;
 
-    std::shared_ptr<Renderer> mr = render;
+    Renderer *mr = render;
     if (!mr) return;
     const BlockPos& center(mr->getCenter());
     glm::mat4 view = camera->getViewMatrix(center.X, center.Y, center.Z);

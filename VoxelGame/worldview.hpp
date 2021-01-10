@@ -15,12 +15,15 @@ private:
     Shader blockShader;
     Shader entityShader;
     Shader placementShader;
-    std::shared_ptr<Renderer> placeblock_render;
+    Renderer *placeblock_render;
     
 public:
     WorldView() : entityShader("vertex_entity.glsl", "fragment_entity.glsl"), blockShader("vertex_block.glsl", "fragment_block.glsl"),
           placementShader("vertex_placement.glsl", "fragment_placement.glsl") {
-        placeblock_render.reset(new Renderer(0));
+        placeblock_render = new Renderer(0);
+    }
+    ~WorldView() {
+        RenderManager::instance.queueDeleteRenderer(placeblock_render);
     }
     
     void computeChunkRenders(const glm::dvec3& cp, const glm::mat4& projection, CameraModel *camera);

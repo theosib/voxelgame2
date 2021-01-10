@@ -95,7 +95,8 @@ public:
     }
     
     MeshPtr getMesh(uint16_t index) {
-        MeshPtr mp = meshes[index];
+        MeshPtr mp = std::atomic_load(&meshes[index]);
+        // MeshPtr mp = meshes[index];
         if (mp) {
             //std::cout << "Index " << index << " is local mesh\n";
             return mp;
@@ -104,7 +105,12 @@ public:
         BlockType *bt = lookupBlockType(block_storage[index]);
         return bt->getMesh();
     }
+    MeshPtr getDefaultMesh(uint16_t index) {
+        BlockType *bt = lookupBlockType(block_storage[index]);
+        return bt->getMesh();
+    }
     MeshPtr getMesh(Block *block);
+    MeshPtr getDefaultMesh(Block *block);
     void setMesh(Block *block, MeshPtr mesh);
     
     void setRepeatTickFrequency(Block *block, int freq) { }
@@ -115,7 +121,7 @@ public:
     // Call after modifying data
     void markDataModified() { needs_save = true; }
     DataContainerPtr getDataContainer(Block *block, bool create);
-    
+    void setDataContainer(Block *block, DataContainerPtr data);
     
     void getCorners(BlockPos *pos, const BlockPos& center);
     

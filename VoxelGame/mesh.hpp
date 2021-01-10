@@ -9,32 +9,37 @@
 
 class Face {
 private:
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec2> texcoords;
+    glm::vec3 vertices[4];
+    glm::vec2 texcoords[4];
+    int num_vertices;
+    int num_texcoords;
     glm::vec3 normal;
-    // int which_face;
     
 public:
-    Face() {}
-    // Face(int face) : which_face(face) {}
-    
+    Face() : num_texcoords(0), num_vertices(0) {}
+        
     // Building a face
     void computeNormal();
     void addVertex(float x, float y, float z) {
-        vertices.emplace_back(x, y, z);
-        if (vertices.size() == 3) computeNormal();
+        vertices[num_vertices].x = x;
+        vertices[num_vertices].y = y;
+        vertices[num_vertices].z = z;
+        num_vertices++;
+        if (num_vertices == 3) computeNormal();
     }
     void addVertex(const glm::vec3& vertex) {
-        vertices.push_back(vertex);
-        if (vertices.size() == 3) computeNormal();
+        vertices[num_vertices++] = vertex;
+        if (num_vertices == 3) computeNormal();
     }
     void addTexCoord(float x, float y) {
-        texcoords.emplace_back(x, y);
+        texcoords[num_texcoords].x = x;
+        texcoords[num_texcoords].y = y;
+        num_texcoords++;
     }
     void addTexCoord(const glm::vec2& texcoord) {
-        texcoords.push_back(texcoord);
+        texcoords[num_texcoords++] = texcoord;
     }
-    size_t numVertices() { return vertices.size(); }
+    size_t numVertices() { return num_vertices; }
     glm::vec3& getVertex(int n) { return vertices[n]; }
     glm::vec2& getTexCoord(int n) { return texcoords[n]; }
     

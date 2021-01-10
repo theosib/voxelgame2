@@ -117,12 +117,12 @@ void test()
 void register_static_blocks();
 void init_dirt_block();
 
-Entity *my_entity = 0;
+EntityPtr my_entity = 0;
 void make_entity()
 {
     MeshPtr mesh = Mesh::makeMesh();
     mesh->loadMesh("stone");
-    my_entity = new Entity();
+    my_entity = Entity::makeEntity();
     my_entity->setMesh(mesh);
     my_entity->setPosition(glm::dvec3(0, 30, 0));
     my_entity->setVisible(true);

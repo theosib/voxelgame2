@@ -142,10 +142,10 @@ public:
 class DataContainer {
 private:
     std::vector<DataItemPtr> entries;
-    int64_t packed_length;
+    // int64_t packed_length;
     
 protected:
-    DataContainer() : packed_length(-1) {}
+    DataContainer() {}
 public:
     ~DataContainer() {}
     
