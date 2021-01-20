@@ -172,11 +172,11 @@ int WorldView::outsideFrustum(const glm::mat4& transform, const glm::dvec3& poin
 {
     int result = 0;
     
-    glm::vec4 point(point_in, 1.0f);
-    glm::vec4 row1(glm::row(transform, 0));
-    glm::vec4 row2(glm::row(transform, 1));
-    glm::vec4 row3(glm::row(transform, 2));
-    glm::vec4 row4(glm::row(transform, 3));
+    const glm::vec4 point(point_in, 1.0f);
+    const glm::vec4 row1(glm::row(transform, 0));
+    const glm::vec4 row2(glm::row(transform, 1));
+    const glm::vec4 row3(glm::row(transform, 2));
+    const glm::vec4 row4(glm::row(transform, 3));
     
     if (0 > glm::dot(point, row4 + row1)) result |= facing::WEST_MASK;
     if (0 > glm::dot(point, row4 - row1)) result |= facing::EAST_MASK;

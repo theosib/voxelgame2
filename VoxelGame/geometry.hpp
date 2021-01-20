@@ -112,6 +112,8 @@ namespace geom {
         }
         
         double distance(const Box& other) const;
+        
+        std::string toString() const;
     };
     
     struct BoxArray {

@@ -23,6 +23,7 @@ public:
     virtual void placeEvent(Block *block) = 0;
     virtual void breakEvent(Block *block) = 0;
     virtual void updateEvent(Block *block) = 0;
+    virtual void repaintEvent(Block *block) = 0;
     
     virtual const std::string& getName() = 0;
 };

@@ -3,9 +3,25 @@
 
 void Face::computeNormal()
 {
-    glm::vec3& a(vertices[0]);
-    glm::vec3& b(vertices[1]);
-    glm::vec3& c(vertices[2]);
+    glm::vec3 a, b, c;
+    if (num_vertices==3) {
+        a = vertices[0];
+        b = vertices[1];
+        c = vertices[2];
+    } else {
+        if (vertices[0] == vertices[1] || vertices[1] == vertices[2]) {
+            a = vertices[0];
+            b = vertices[2];
+            c = vertices[3];
+        } else {
+            a = vertices[0];
+            b = vertices[1];
+            c = vertices[2];
+        }
+    }
+    // glm::vec3& a(vertices[0]);
+    // glm::vec3& b(vertices[1]);
+    // glm::vec3& c(vertices[2]);
     glm::vec3 cb = c - b;
     glm::vec3 ab = a - b;
     glm::vec3 x = glm::cross(cb, ab);

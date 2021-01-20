@@ -77,15 +77,18 @@ public:
     BlockPtr getBlock(const BlockPos& pos);
     BlockPtr getBlock(uint16_t index);
     void breakBlock(const BlockPos& pos);
+    void genBlock(const BlockPos& pos, const std::string& name);
     void setBlock(const BlockPos& pos, const std::string& name, int rotation);
     void setBlock(const BlockPos& pos, const std::string& name) {
         setBlock(pos, name, 0);
     }
-    void updateBlock(const BlockPos& pos); // causes visual update and update event
-    void updateAllBlocks(); // Visual and update event to all blocks
+    void updateBlock(const BlockPos& pos); // causes update event
+    void repaintBlock(const BlockPos& pos); // causes repaint event
+    void updateAllBlocks(bool no_load=false);  // Queue update event to all blocks
+    void repaintAllBlocks(); // Queue repaint event to all blocks
     
     // Used by Block, not externally
-    void requestVisualUpdate(Block *block); // This requests ONLY visual update, after Block has done some work
+    void requestVisualUpdate(Block *block); // Mark block needing new mesh, after repaint
     int getVisibleFaces(Block *block);
     void setVisibleFaces(Block *block, int faces);
     int getRotation(Block *block);
@@ -127,6 +130,8 @@ public:
     
     void save();
     bool load();
+    
+    void generate();
     
     const ChunkPos& getChunkPos() { return chunk_pos; }
     

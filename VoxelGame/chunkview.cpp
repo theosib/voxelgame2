@@ -277,6 +277,7 @@ bool ChunkView::insideFrustum(const glm::mat4& view, const BlockPos& center)
     for (int i=0; i<8; i++) {
         int outside = WorldView::outsideFrustum(xform, corners[i]);
         reduction &= outside;
+        if (reduction == 0) return true;
     }
     
     return reduction == 0;

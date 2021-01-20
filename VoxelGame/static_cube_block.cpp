@@ -21,6 +21,7 @@ public:
     virtual void placeEvent(Block *block);
     virtual void breakEvent(Block *block);
     virtual void updateEvent(Block *block);
+    virtual void repaintEvent(Block *block);
 
     virtual const std::string& getName();
 };
@@ -46,6 +47,7 @@ void StaticCubeBlock::tickEvent(Block *block, int tick_types) {}
 void StaticCubeBlock::placeEvent(Block *block) {}
 void StaticCubeBlock::breakEvent(Block *block) {}
 void StaticCubeBlock::updateEvent(Block *block) {}
+void StaticCubeBlock::repaintEvent(Block *block) {}
 
 const std::string& StaticCubeBlock::getName()
 {
@@ -79,6 +81,7 @@ void register_static_blocks()
     init_static_block("chicken");
     init_static_block("carpet");
     init_static_block("transgray");
+    init_static_block("windowpane");
     init_static_block("nfrog");
     init_static_block("ilmango");
     init_static_block("numbercube");

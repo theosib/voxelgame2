@@ -83,6 +83,14 @@ int geom::exitFace(const glm::dvec3& camera_in, const glm::dvec3& forward, doubl
     return min_face;
 }
 
+std::string geom::Box::toString() const
+{
+    std::string x = glm::to_string(neg);
+    x += "/";
+    x += glm::to_string(pos);
+    return x;
+}
+
 int geom::enterFace(const glm::dvec3& camera, const glm::dvec3& forward, const glm::dvec3& block_pos, double &r)
 {
     double min_d = -1;

@@ -1,6 +1,6 @@
 include: cube_faces
 include: uniform_cube_texture
 include: cube_collision
-texture: numbercube_nearest
+texture: dirt
 normals: auto
 solid-faces: bottom top west east north south

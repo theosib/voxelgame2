@@ -67,6 +67,7 @@ struct Block {
     bool useAction(int face) { return impl->useAction(this, face); }
     void tickEvent(int tick_types) { impl->tickEvent(this, tick_types); }
     void updateEvent() { impl->updateEvent(this); }
+    void repaintEvent() { impl->repaintEvent(this); }
     void placeEvent() { impl->placeEvent(this); }
     void breakEvent() { impl->breakEvent(this); }
     

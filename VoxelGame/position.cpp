@@ -1,7 +1,19 @@
 #include "position.hpp"
-
-
 #include <sstream>
+
+BlockPos::BlockPos(const glm::dvec3& v)
+{
+    X = lrint(floor(v.x));
+    Y = lrint(floor(v.y));
+    Z = lrint(floor(v.z));
+}
+
+BlockPos::BlockPos(const glm::vec3& v)
+{
+    X = lrint(floor(v.x));
+    Y = lrint(floor(v.y));
+    Z = lrint(floor(v.z));
+}
 
 std::string BlockPos::toString() const
 {
@@ -27,14 +39,15 @@ void BlockPos::allNeighbors(BlockPos *npos) const
 
 void BlockPos::allSurrounding(BlockPos *npos) const
 {
-    npos[0] = north().west();
-    npos[1] = north();
-    npos[2] = north().east();
-    npos[3] = west();
-    npos[4] = east();
-    npos[5] = south().west();
-    npos[6] = south();
-    npos[7] = south().east();
+    int i=0;
+    for (int y=-1; y<=1; y++) {
+        for (int z=-1; z<=1; z++) {
+            for (int x=-1; x<=1; x++) {
+                if (x==0 && y==0 && z==0) continue;
+                npos[i++] = offset(x, y, z);
+            }
+        }
+    }
 }
 
 

@@ -27,27 +27,30 @@ private:
     std::thread *tickThread;
     bool tick_thread_alive;
     double last_tick_time;
+    std::thread *blockUpdateThread;
+    bool bu_thread_alive;
     
     std::string block_to_place;
     int place_rotation;
     
-    std::vector<ChunkPos> known_chunks;
+    // std::vector<ChunkPos> known_chunks;
     int load_chunk_index;
     
     // std::mutex storage_mutex;
     std::unordered_map<uint64_t, Chunk *> chunk_storage;
     std::deque<Chunk *> chunk_unload_queue;
     spinlock storage_mutex;
-    spinlock update_mutex;
+    spinlock update_mutex, repaint_mutex;
     
     std::vector<BlockPos> block_queue_pos;
     std::vector<std::string> block_queue_name;
     
     std::vector<EntityPtr> entities;
     
-    //std::unordered_set<BlockPos> block_update_queue_load, block_update_queue_no_load;
-    // std::vector<BlockPos> block_update_queue_load, block_update_queue_no_load;
     std::unordered_set<BlockPos> block_update_queue_load, block_update_queue_no_load;
+    std::unordered_set<BlockPos> repaint_queue;
+    
+    BlockPos user_position; // For chunk loading
         
     // XXX invalidate this on unloading
     uint64_t last_chunk_pos[2];
@@ -79,6 +82,8 @@ public:
         tick_thread_alive = false;
         tickThread = 0;
         place_rotation = 0;
+        blockUpdateThread = 0;
+        bu_thread_alive = false;
     }
     
     ~World();
@@ -91,18 +96,22 @@ public:
             block_update_queue_load.insert(pos);
         }
     }
+    void repaintBlock(const BlockPos& pos) {
+        std::unique_lock<spinlock> lock(repaint_mutex);
+        repaint_queue.insert(pos);
+    }
     void updateBlocks(const BlockPos *pos, size_t cnt, bool no_load=false);
     void updateBlocks(const std::vector<BlockPos>& pos, bool no_load=false) {
         updateBlocks(pos.data(), pos.size(), no_load);
     }
+    void repaintBlocks(const BlockPos *pos, size_t cnt);
+    void repaintBlocks(const std::vector<BlockPos>& pos) {
+        repaintBlocks(pos.data(), pos.size());
+    }
     
     
     void updateSurroundingBlocks(const BlockPos& pos, bool no_load=false);
-    
-    // void updateBlock(const BlockPos& pos, bool no_load) {
-    //     std::unique_lock<spinlock> lock(update_queue_mutex);
-    //     updateBlockUnlocked(pos, no_load);
-    // }
+    void repaintSurroundingBlocks(const BlockPos& pos);
     
     void doBlockUpdates();
             
@@ -134,7 +143,12 @@ public:
         }*/
     }
     
+    void setUserPosition(const BlockPos& up) {
+        user_position = up;
+    }
+    
     void listAllChunks(std::vector<Chunk *>& list);
+    void setOfLoadedChunks(std::unordered_set<ChunkPos>& set);
     void listAllEntities(std::vector<EntityPtr>& list);
         
     Chunk* getChunk(const ChunkPos& pos, bool no_load=false) {
@@ -188,17 +202,26 @@ public:
     
     void findNearestBlock(const glm::dvec3& start, const glm::dvec3& forward, double limit, BlockPos& target, double& dist, int& enter_face);
     
-    void addKnownChunk(const ChunkPos& pos);
-    void loadKnownChunks();
-    void sortKnownChunks(const BlockPos& center);
+    // void addKnownChunk(const ChunkPos& pos);
+    // void loadKnownChunks();
+    // void sortKnownChunks(const BlockPos& center);
+    
+    void startBlockUpdateThread();
+    void stopBlockUpdateThread();
+    void blockUpdateThreadLoop();
     
     void stopLoadSaveThread();
     void startLoadSaveThread();
     void loadSaveThreadLoop();
     Chunk* nextSaveChunk();
     void saveChunk(Chunk* chunk);
-    void loadSomeChunk(const BlockPos& center);
-    void unloadChunk(Chunk* chunk);
+    // void loadSomeChunk(const BlockPos& center);
+    void loadUnloadChunks(const ChunkPos& center);
+    void unloadChunkUnlocked(const ChunkPos& cp);
+    void unloadChunkLocked(const ChunkPos& cp) {
+        std::unique_lock<spinlock> lock(storage_mutex);
+        unloadChunkUnlocked(cp);
+    }
     void dequeueUnloadedChunk();
     void saveAll();
     

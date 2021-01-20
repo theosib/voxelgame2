@@ -16,6 +16,11 @@
 
 World World::instance;
 
+
+template<typename T>
+inline T sqr(T x) { return x*x; }
+
+
 // template class LongConcurrentMap<Chunk*>;
 
 
@@ -45,11 +50,22 @@ void World::listAllChunks(std::vector<Chunk *>& list)
     }
 }
 
+void World::setOfLoadedChunks(std::unordered_set<ChunkPos>& set)
+{
+    set.clear();
+    std::unique_lock<spinlock> lock(World::instance.storage_mutex);
+    for (auto i=World::instance.chunk_storage.begin(); i!=World::instance.chunk_storage.end(); ++i) {
+        set.insert(i->second->getChunkPos());
+    }
+}
+
 void World::listAllEntities(std::vector<EntityPtr>& list)
 {
     std::unique_lock<spinlock> lock(World::instance.storage_mutex);
     list.assign(entities.begin(), entities.end());
 }
+
+bool position_load = false;
 
 // Assumes lock is already taken
 Chunk* World::loadChunkUnlocked(const ChunkPos& pos)
@@ -59,29 +75,39 @@ Chunk* World::loadChunkUnlocked(const ChunkPos& pos)
     
     // XXX check unload queue for chunk
     
+    if (pos.Y<0) return 0;
+    
     Chunk *chunk = 0;
     
     // Search unload queue for this chunk
     for (auto i=chunk_unload_queue.begin(); i!=chunk_unload_queue.end(); ++i) {
         Chunk *c = *i;
         if (c->getChunkPos() == pos) {
+            
+            // if (!position_load) {
+            //     std::cout << "Loading chunk " << pos.toString() << " from unload queue" << std::endl;
+            //     __builtin_trap();
+            // }
+            
             chunk = c;
+            chunk->time_unloaded = 0;
             chunk_unload_queue.erase(i);
             break;
         }
     }
     
     if (!chunk) {
+        // std::cout << "Loading chunk " << pos.toString() << " from disk" << std::endl;
         chunk = new Chunk(pos);
         bool ok = chunk->load();
-        // if (!ok) do world gen
-        chunk->updateAllBlocks();
+        if (!ok) chunk->generate(); // XXX queue the generation to a gen thread
+        chunk->repaintAllBlocks();
         
         // XXX is this the best place to do this?
         for (int n=0; n<facing::NUM_FACES; n++) {
             ChunkPos cp = pos.neighbor(n);
             Chunk *chunk = getChunkUnlocked(cp, World::NoLoad);
-            if (chunk) chunk->updateAllBlocks();
+            if (chunk) chunk->repaintAllBlocks();
         }
     }
     
@@ -117,21 +143,73 @@ void World::updateBlocks(const BlockPos *pos, size_t count, bool no_load)
     }
 }
 
+void World::repaintBlocks(const BlockPos *pos, size_t count)
+{
+    std::unique_lock<spinlock> lock(repaint_mutex);
+    for (int i=0; i<count; i++) {
+        repaint_queue.insert(pos[i]);
+    }
+}
+
 void World::doBlockUpdates()
 {
-    std::vector<BlockPos> load_pos, no_load_pos;
+    int start_repaint, did_repaint, after_repaint, remain_repaint;
+    
+    int limit = 100000;
+    std::vector<BlockPos> load_pos, no_load_pos, repaint_pos;
+    
+    /* Get some blocks to update */
     {
         std::unique_lock<spinlock> lock(update_mutex);
-        load_pos.insert(load_pos.begin(), block_update_queue_load.begin(), block_update_queue_load.end());
-        no_load_pos.insert(no_load_pos.begin(), block_update_queue_no_load.begin(), block_update_queue_no_load.end());
-        block_update_queue_load.clear();
-        block_update_queue_no_load.clear();
+        
+        auto it = block_update_queue_load.begin();
+        while (it!=block_update_queue_load.end() && limit>0) {
+            load_pos.push_back(*it);
+            //it = block_update_queue_load.erase(it);
+            ++it;
+            limit--;
+        }
+        
+        it = block_update_queue_no_load.begin();
+        while (it!=block_update_queue_no_load.end() && limit>0) {
+            no_load_pos.push_back(*it);
+            // it = block_update_queue_no_load.erase(it);
+            ++it;
+            limit--;
+        }
+        
+        // load_pos.insert(load_pos.begin(), block_update_queue_load.begin(), block_update_queue_load.end());
+        // no_load_pos.insert(no_load_pos.begin(), block_update_queue_no_load.begin(), block_update_queue_no_load.end());
+        // block_update_queue_load.clear();
+        // block_update_queue_no_load.clear();
+    }
+    {
+        std::unique_lock<spinlock> lock(repaint_mutex);
+        
+        start_repaint = repaint_queue.size();
+        
+        auto it = repaint_queue.begin();
+        while (it!=repaint_queue.end() && limit>0) {
+            repaint_pos.push_back(*it);
+            // it = repaint_queue.erase(it);
+            ++it;
+            limit--;
+        }
+        
+        // repaint_pos.insert(repaint_pos.begin(), repaint_queue.begin(), repaint_queue.end());
+        // repaint_queue.clear();
     }
     
+    /* Update the blocks */
     std::unique_ptr<Chunk* []> load_chunks(new Chunk *[load_pos.size()]);
     std::unique_ptr<Chunk* []> no_load_chunks(new Chunk *[no_load_pos.size()]);
-    getChunks(load_pos, load_chunks.get(), false);
-    getChunks(no_load_pos, no_load_chunks.get(), true);
+    std::unique_ptr<Chunk* []> repaint_chunks(new Chunk *[repaint_pos.size()]);
+    getChunks(load_pos, load_chunks.get(), !World::NoLoad);
+    getChunks(no_load_pos, no_load_chunks.get(), World::NoLoad);
+    getChunks(repaint_pos, repaint_chunks.get(), World::NoLoad);
+    
+    // int total = load_pos.size() + no_load_pos.size();
+    // if (total) std::cout << "Updating " << total << " blocks\n";
     
     for (int i=0; i<load_pos.size(); i++) {
         Chunk *p = load_chunks[i];
@@ -142,17 +220,52 @@ void World::doBlockUpdates()
         Chunk *p = no_load_chunks[i];
         if (p) p->updateBlock(no_load_pos[i]);
     }
+    
+    for (int i=0; i<repaint_pos.size(); i++) {
+        Chunk *p = repaint_chunks[i];
+        if (p) p->repaintBlock(repaint_pos[i]);
+    }
+    
+    did_repaint = repaint_pos.size();
+    
+    /* Remove those blocks from the queue */
+    {
+        std::unique_lock<spinlock> lock(update_mutex);
+        
+        for (auto it=load_pos.begin(); it!=load_pos.end(); ++it) {
+            block_update_queue_load.erase(*it);
+        }
+
+        for (auto it=no_load_pos.begin(); it!=no_load_pos.end(); ++it) {
+            block_update_queue_no_load.erase(*it);
+        }
+    }
+    
+    {
+        std::unique_lock<spinlock> lock(repaint_mutex);
+        
+        after_repaint = repaint_queue.size();
+        for (auto it=repaint_pos.begin(); it!=repaint_pos.end(); ++it) {
+            repaint_queue.erase(*it);
+        }
+        remain_repaint = repaint_queue.size();
+        
+        // std::cout << "Repaints: start=" << start_repaint << " did=" << did_repaint << " after=" << after_repaint << " remain=" << remain_repaint << std::endl;
+    }
 }
 
 void World::updateSurroundingBlocks(const BlockPos& pos, bool no_load)
 {
-    BlockPos block_pos[10];
+    BlockPos block_pos[26];
     pos.allSurrounding(block_pos);
-    block_pos[8] = pos.up();
-    block_pos[9] = pos.down();
-    for (int neigh=0; neigh<10; neigh++) {
-        updateBlock(block_pos[neigh]);
-    }    
+    updateBlocks(block_pos, 26, no_load);
+}
+
+void World::repaintSurroundingBlocks(const BlockPos& pos)
+{
+    BlockPos block_pos[26];
+    pos.allSurrounding(block_pos);
+    repaintBlocks(block_pos, 26);
 }
 
 #if 0
@@ -183,7 +296,7 @@ void World::setBlock(const BlockPos& pos, const std::string& block_name, int rot
 {
     Chunk *chunk = getChunk(pos.getChunkPos());
     chunk->setBlock(pos, block_name, rotation);
-    updateSurroundingBlocks(pos, false);
+    updateSurroundingBlocks(pos);
 }
 
 void World::breakBlock(const BlockPos& pos)
@@ -195,9 +308,6 @@ void World::queueBlock(const BlockPos& pos, const std::string& block_name)
 {
     block_queue_pos.push_back(pos);
     block_queue_name.push_back(block_name);
-    
-    updateSurroundingBlocks(pos);
-    
     if (block_queue_pos.size() > 128) flushBlockQueue();
 }
 
@@ -217,9 +327,10 @@ void World::flushBlockQueue()
         //     chunk->setBlock(pos, name);
         // }
         chunk->setBlock(pos, name);
+        updateSurroundingBlocks(pos);
     }
     
-    doBlockUpdates();    
+    // doBlockUpdates();    
     
     block_queue_pos.clear();
     block_queue_name.clear();
@@ -265,10 +376,17 @@ void World::getNeighborBlocks(const BlockPos& pos, BlockPtr *blocks, bool includ
 
 void World::getSurroundingBlocks(const BlockPos& pos, BlockPtr *blocks, bool include_self, bool no_load)
 {
-    BlockPos block_pos[9];
+    BlockPos block_pos[27];
     pos.allSurrounding(block_pos);
-    block_pos[8] = pos;
-    getBlocks(block_pos, 8 + (include_self?1:0), blocks, no_load);
+    if (include_self) {
+        for (int i=26; i>13; i--) {
+            block_pos[i] = block_pos[i-1];
+        }
+        block_pos[13] = pos;
+        getBlocks(block_pos, 27, blocks, no_load);
+    } else {
+        getBlocks(block_pos, 26, blocks, no_load);
+    }
 }
 
 
@@ -357,14 +475,22 @@ void World::saveAll()
     }
 }
 
-void World::unloadChunk(Chunk* chunk)
+void World::unloadChunkUnlocked(const ChunkPos& cp)
 {
+    //std::unique_lock<spinlock> lock(storage_mutex);
+    
+    Chunk *chunk = getChunkUnlocked(cp, World::NoLoad);
+    if (!chunk) {
+        std::cout << "Tried to unload an unloaded chunk\n";
+        return;
+    }
+    
     // Put the chunk into the unload queue
-    std::unique_lock<spinlock> lock(storage_mutex);
+    // std::cout << "Moving " << cp.toString() << " into unload queue\n";
     chunk->time_unloaded = ref::currentTime();
     uint64_t packed = chunk->getChunkPos().packed();
-    chunk_storage.erase(packed);
     chunk_unload_queue.push_back(chunk);
+    chunk_storage.erase(packed);
     
     last_chunk[1] = 0;
     last_chunk[0] = 0;
@@ -380,6 +506,8 @@ void World::dequeueUnloadedChunk()
     double now = ref::currentTime();
     double age = now - chunk->time_unloaded;
     if (age < 1) return;
+    
+    // std::cout << "Unloading chunk " << chunk->getChunkPos().toString() << std::endl;
     saveChunk(chunk);
     chunk_unload_queue.erase(i);
 }
@@ -405,6 +533,38 @@ void World::hitAction(const BlockPos& pos, int face)
 
 
 
+void World::startBlockUpdateThread()
+{
+    bu_thread_alive = true;
+    blockUpdateThread = new std::thread(&World::blockUpdateThreadLoop, this);
+}
+
+void World::stopBlockUpdateThread()
+{
+    if (blockUpdateThread) {
+        bu_thread_alive = false;
+        blockUpdateThread->join();
+        delete blockUpdateThread;
+        blockUpdateThread = 0;
+    }
+}
+
+void World::blockUpdateThreadLoop()
+{
+    while (bu_thread_alive) {
+        // std::cout << "loadSaveThreadLoop\n";
+#ifdef __APPLE__
+        usleep(10000);
+#endif
+#if defined _WIN32 || defined _WIN64
+        Sleep(10);
+#endif
+        
+        doBlockUpdates();
+    }
+}
+
+
 
 
 void World::stopLoadSaveThread()
@@ -423,8 +583,7 @@ void World::startLoadSaveThread()
     loadSaveThread = new std::thread(&World::loadSaveThreadLoop, this);
 }
 
-
-
+#if 0
 void World::loadSomeChunk(const BlockPos& center)
 {
     std::unique_lock<spinlock> lock(storage_mutex);
@@ -434,19 +593,106 @@ void World::loadSomeChunk(const BlockPos& center)
         sortKnownChunks(center);
     }
     
+    const ChunkPos center_cp(center.getChunkPos());
+    
     while (load_chunk_index < known_chunks.size()) {
         const ChunkPos& cp(known_chunks[load_chunk_index++]);
-        if (!chunkIsLoadedUnlocked(cp)) {
-            // Check distance
-            loadChunkUnlocked(cp);
-            return;
+        
+        long dist = sqr(cp.X - center_cp.X) + sqr(cp.Y - center_cp.Y) + sqr(cp.Z - center_cp.Z);
+        
+        if (chunkIsLoadedUnlocked(cp)) {
+            if (dist < 5*5) {
+                loadChunkUnlocked(cp);
+                return;
+            }
+        } else {
+            if (dist > 6*6) {
+                unloadChunkUnlocked(cp);
+                return;
+            }
         }
+    }
+}
+#endif
+
+
+constexpr int load_distance = 5;
+constexpr int max_height = 16;
+static void computeAreaToLoad(const ChunkPos& center, std::unordered_set<ChunkPos>& load_area)
+{
+    load_area.clear();
+    for (int y=0; y<max_height; y++) {
+        for (int x=-load_distance; x<=load_distance; x++) {
+            for (int z=-load_distance; z<=load_distance; z++) {
+                load_area.insert(ChunkPos(center.X + x, y, center.Z + z));
+            }
+        }
+    }
+}
+
+static void set_difference(const std::unordered_set<ChunkPos>& a, const std::unordered_set<ChunkPos>& b, std::unordered_set<ChunkPos>& a_minus_b)
+{
+    for (auto ai=a.begin(); ai!=a.end(); ++ai) {
+        if (!b.count(*ai)) a_minus_b.insert(*ai);
+    }
+}
+
+static void setToListAndSort(const std::unordered_set<ChunkPos>& set, std::vector<ChunkPos>& list, const ChunkPos& center)
+{
+    for (auto ai=set.begin(); ai!=set.end(); ++ai) {
+        list.push_back(*ai);
+    }
+    std::sort(list.begin(), list.end(),
+    [&center](const ChunkPos& a, const ChunkPos& b) {
+        long dist_a = sqr(a.X-center.X) + sqr(a.Y-center.Y) + sqr(a.Z-center.Z);
+        long dist_b = sqr(b.X-center.X) + sqr(b.Y-center.Y) + sqr(b.Z-center.Z);
+        return dist_a < dist_b;
+    });
+}
+
+void World::loadUnloadChunks(const ChunkPos& center)
+{
+    std::unordered_set<ChunkPos> load_area, currently_loaded, to_load_set, to_unload_set;
+    
+    computeAreaToLoad(center, load_area);
+    setOfLoadedChunks(currently_loaded);
+    
+    // std::cout << "Center " << center.toString() << std::endl;
+    
+    set_difference(load_area, currently_loaded, to_load_set);
+    if (to_load_set.size() > 0) {
+        std::vector<ChunkPos> to_load_list;
+        setToListAndSort(to_load_set, to_load_list, center);
+        int i=0;
+        for (auto li=to_load_list.begin(); i<1 && li!=to_load_list.end(); ++li, i++) {
+            const ChunkPos& load_pos(*li);
+            position_load = true;
+            loadChunkLocked(load_pos);
+            position_load = false;
+        }
+        // ChunkPos load_pos = *(to_load_list.begin());
+        // std::cout << "Loading chunk " << load_pos.toString() << " because of position\n";
+        // loadChunkLocked(load_pos);
+    }
+    
+    set_difference(currently_loaded, load_area, to_unload_set);
+    if (to_unload_set.size() > 0) {
+        std::vector<ChunkPos> to_unload_list;
+        setToListAndSort(to_unload_set, to_unload_list, center);
+        int i=0;
+        for (auto li=to_unload_list.begin(); i<1 && li!=to_unload_list.end(); ++li, i++) {
+            const ChunkPos& unload_pos(*li);
+            unloadChunkLocked(unload_pos);
+        }
+        // ChunkPos unload_pos = *(to_unload_list.begin());
+        // // std::cout << "Unloading chunk " << unload_pos.toString() << " because of position\n";
+        // unloadChunkLocked(unload_pos);
     }
 }
 
 void World::loadSaveThreadLoop()
 {
-    loadKnownChunks();
+    // loadKnownChunks();
     while (ls_thread_alive) {
         // std::cout << "loadSaveThreadLoop\n";
 #ifdef __APPLE__
@@ -460,34 +706,34 @@ void World::loadSaveThreadLoop()
             saveChunk(chunk);
         }
         
-        loadSomeChunk(BlockPos(0,0,0));
+        loadUnloadChunks(user_position.getChunkPos());
+        
+        dequeueUnloadedChunk();
         
         // unloadSomeChunk();
     }
 }
 
-void World::addKnownChunk(const ChunkPos& pos)
-{
-    for (auto i=known_chunks.begin(); i!=known_chunks.end(); i++) {
-        if (*i == pos) return;
-    }
-    known_chunks.push_back(pos);
-}
+// void World::addKnownChunk(const ChunkPos& pos)
+// {
+//     for (auto i=known_chunks.begin(); i!=known_chunks.end(); i++) {
+//         if (*i == pos) return;
+//     }
+//     known_chunks.push_back(pos);
+// }
 
-template<typename T>
-inline T sqr(T x) { return x*x; }
 
-void World::sortKnownChunks(const BlockPos& center)
-{
-    ChunkPos cp(center.getChunkPos());
-    
-    std::sort(known_chunks.begin(), known_chunks.end(),
-    [&cp](const ChunkPos& a, const ChunkPos& b) {
-        long dist_a = sqr(a.X-cp.X) + sqr(a.Y-cp.Y) + sqr(a.Z-cp.Z);
-        long dist_b = sqr(b.X-cp.X) + sqr(b.Y-cp.Y) + sqr(b.Z-cp.Z);
-        return dist_a < dist_b;
-    });
-}
+// void World::sortKnownChunks(const BlockPos& center)
+// {
+//     ChunkPos cp(center.getChunkPos());
+//
+//     std::sort(known_chunks.begin(), known_chunks.end(),
+//     [&cp](const ChunkPos& a, const ChunkPos& b) {
+//         long dist_a = sqr(a.X-cp.X) + sqr(a.Y-cp.Y) + sqr(a.Z-cp.Z);
+//         long dist_b = sqr(b.X-cp.X) + sqr(b.Y-cp.Y) + sqr(b.Z-cp.Z);
+//         return dist_a < dist_b;
+//     });
+// }
 
 static bool parse_chunk_coords(const char *str, int *arr)
 {
@@ -509,26 +755,26 @@ static bool parse_chunk_coords(const char *str, int *arr)
     return true;
 }
 
-void World::loadKnownChunks()
-{
-    bool ok;
-    
-    known_chunks.clear();
-    
-    std::string path = FileLocator::instance.chunk("");
-    for (const auto& entry : std::filesystem::directory_iterator(path)) {
-        const std::string& path(entry.path().string());
-        std::size_t found = path.find_last_of("/\\");
-        if (found == std::string::npos) continue;
-        const char *fname = path.c_str() + found + 1;
-        int xyz[3];
-        ok = parse_chunk_coords(fname, xyz);
-        if (!ok) continue;
-        
-        known_chunks.emplace_back(xyz[0], xyz[1], xyz[2]);
-        // std::cout << fname << " -> " << known_chunks.back().toString() << std::endl;
-    }
-}
+// void World::loadKnownChunks()
+// {
+//     bool ok;
+//
+//     known_chunks.clear();
+//
+//     std::string path = FileLocator::instance.chunk("");
+//     for (const auto& entry : std::filesystem::directory_iterator(path)) {
+//         const std::string& path(entry.path().string());
+//         std::size_t found = path.find_last_of("/\\");
+//         if (found == std::string::npos) continue;
+//         const char *fname = path.c_str() + found + 1;
+//         int xyz[3];
+//         ok = parse_chunk_coords(fname, xyz);
+//         if (!ok) continue;
+//
+//         known_chunks.emplace_back(xyz[0], xyz[1], xyz[2]);
+//         // std::cout << fname << " -> " << known_chunks.back().toString() << std::endl;
+//     }
+// }
 
 
 void World::startTickThread()

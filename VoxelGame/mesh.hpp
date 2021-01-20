@@ -25,11 +25,11 @@ public:
         vertices[num_vertices].y = y;
         vertices[num_vertices].z = z;
         num_vertices++;
-        if (num_vertices == 3) computeNormal();
+        if (num_vertices >= 3) computeNormal();
     }
     void addVertex(const glm::vec3& vertex) {
         vertices[num_vertices++] = vertex;
-        if (num_vertices == 3) computeNormal();
+        if (num_vertices >= 3) computeNormal();
     }
     void addTexCoord(float x, float y) {
         texcoords[num_texcoords].x = x;
@@ -117,6 +117,10 @@ public:
     }
     
     static glm::mat4 getRotationMatrix(int rotation_num);
+    
+    void addCollisionBox(const geom::Box& box) {
+        collision.push_back(box);
+    }
     
     void getCollision(std::vector<geom::Box>& boxes, double offsetX, double offsetY, double offsetZ, int rotation);
 };

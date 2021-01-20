@@ -6,7 +6,7 @@
 #include "facing.hpp"
 #include <vector>
 #include <algorithm>
-
+#include <glm/glm.hpp>
 
 struct ChunkPos {
     int32_t X, Y, Z;
@@ -44,6 +44,10 @@ struct ChunkPos {
     ChunkPos west(int dist=1) const { return ChunkPos(X-dist, Y, Z); }
     ChunkPos east(int dist=1) const { return ChunkPos(X+dist, Y, Z); }
     
+    ChunkPos offset(int x, int y, int z) const {
+        return ChunkPos(X+x, Y+y, Z+z);
+    }
+    
     ChunkPos neighbor(int face) const {
         const int *vec = facing::int_vector[face];
         return ChunkPos(X+vec[0], Y+vec[1], Z+vec[2]);
@@ -55,6 +59,8 @@ struct BlockPos {
     
     BlockPos() {}
     BlockPos(int32_t x, int32_t y, int32_t z) : X(x), Y(y), Z(z) {}
+    BlockPos(const glm::dvec3& v);
+    BlockPos(const glm::vec3& v);
     
     ChunkPos getChunkPos() const {
         return ChunkPos(X>>4, Y>>4, Z>>4);
@@ -73,6 +79,10 @@ struct BlockPos {
     BlockPos south(int dist=1) const { return BlockPos(X, Y, Z+dist); }
     BlockPos west(int dist=1) const { return BlockPos(X-dist, Y, Z); }
     BlockPos east(int dist=1) const { return BlockPos(X+dist, Y, Z); }
+    
+    BlockPos offset(int x, int y, int z) const {
+        return BlockPos(X+x, Y+y, Z+z);
+    }
     
     BlockPos neighbor(int face) const {
         const int *vec = facing::int_vector[face];
@@ -122,6 +132,15 @@ namespace std {
     template <>
     struct hash<BlockPos> {
         std::size_t operator()(const BlockPos& k) const {
+            return k.packed();
+        }
+    };
+}
+
+namespace std {
+    template <>
+    struct hash<ChunkPos> {
+        std::size_t operator()(const ChunkPos& k) const {
             return k.packed();
         }
     };

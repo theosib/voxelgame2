@@ -116,7 +116,7 @@ void Entity::move(const glm::dvec3& motion)
     bool best_coll_x = true, best_coll_z = true;
     double best_step = 0;
     double best_dd = 0, best_dx = 0, best_dz = 0;
-    for (double step=0; step<=0.625; step+=0.0625) {
+    for (double step=0; step<=0.625; step+=0.03125) {
         geom::Box up = box_here.offset(0, step, 0);
         double d_y = target_y.minDistance(up) - 0.001;
         if (d_y <= 0 && step>0) break;
@@ -165,6 +165,8 @@ void Entity::move(const glm::dvec3& motion)
         
         if (!on_ground || !gravity) break;
     }
+    
+    // if (best_step>0) std::cout << "Step " << best_step << std::endl;
     
     ebox.position.y += best_step;
     if (motion.x<0) {
@@ -302,7 +304,7 @@ void Entity::computeRender(RenderData *render_data, const BlockPos& center, cons
 
 bool Entity::insideFrustum(const glm::mat4& view, const BlockPos& center)
 {
-    // XXX
+    // XXX check to make sure entity is inside frustum
     return true;
 }
 

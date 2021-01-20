@@ -9,7 +9,7 @@ uniform sampler2D ourTexture;
 
 void main()
 {
-    vec3 lightPos = vec3(-1000.0, 1000.0, 1000.0);
+    vec3 lightPos = vec3(-500.0, 1000.0, 1000.0);
     //vec3 lightDir = normalize(vec3(-1.0, 1.0, 1.0));
     vec3 lightDir = normalize(lightPos - FragPos);
     float diff = max(dot(Normal, lightDir), 0.0);

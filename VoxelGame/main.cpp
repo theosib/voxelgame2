@@ -168,6 +168,7 @@ int WinMain()
     std::cout << "Launching thread\n";
     World::instance.startLoadSaveThread();
     World::instance.startTickThread();
+    World::instance.startBlockUpdateThread();
     RenderManager::instance.launch_threads();
     
     // make_entity();
@@ -232,7 +233,7 @@ int WinMain()
             glClear(GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_CULL_FACE);
-            glCullFace(GL_FRONT);   // The geometry of the menu has Y inverted
+            glCullFace(GL_BACK);
             double mx, my;
             window.getCursorPos(&mx, &my);
             selected_block = UIElements::instance.drawBlockMenu(window.getWidth(), window.getHeight(), mx, my);
@@ -251,6 +252,7 @@ int WinMain()
         if (window.isShowingMenu()) {
             if (window.checkLeftButton()) {
                 World::instance.setBlockToPlace(selected_block);
+                World::instance.setBlockRotation(0);
                 window.showMenu(false);
                 hide_preview_after = now + 2;
             }
@@ -281,8 +283,10 @@ int WinMain()
         RenderManager::instance.setProjection(projection);
         RenderManager::instance.signalComputeRenders();
         
+        World::instance.setUserPosition(BlockPos(model->getPos()));
+        
         // XXX These and all other setting of blocks should be done in a block setting thread!
-        World::instance.doBlockUpdates();
+        // World::instance.doBlockUpdates();
 
         // window.next_frame();
         window.swap_buffers();
@@ -292,6 +296,8 @@ int WinMain()
     
     RenderManager::instance.stop();
     World::instance.stopLoadSaveThread();
+    World::instance.stopBlockUpdateThread();
+    World::instance.stopTickThread();
     
     // loop_live = false;
     // saveThread.join();

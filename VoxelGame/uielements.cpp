@@ -154,7 +154,7 @@ std::string UIElements::drawBlockMenu(int window_width, int window_height, doubl
         float h = 1;
         float w = (float)window_width / (float)window_height;
         float gap = w/2 - h/2;
-        proj = glm::ortho(-gap*num_cells, (1+gap)*num_cells, (float)num_cells, 0.0f, -10.0f, 100.0f);
+        proj = glm::ortho(-gap*num_cells, (1+gap)*num_cells, 0.0f, (float)num_cells, -10.0f, 10.0f);
         // float cell_size = (float)window_height / (float)num_cells;
         
         mousex /= window_height;
@@ -171,7 +171,7 @@ std::string UIElements::drawBlockMenu(int window_width, int window_height, doubl
         float h = (float)window_height / (float)window_width;
         float w = 1;
         float gap = h/2 - w/2;        
-        proj = glm::ortho(0.0f, (float)num_cells, (1+gap)*num_cells, -gap*num_cells, -10.0f, 100.0f);
+        proj = glm::ortho(0.0f, (float)num_cells, -gap*num_cells, (1+gap)*num_cells, -10.0f, 10.0f);
         // float cell_size = (float)window_width / (float)num_cells;
 
         mousex /= window_width;
@@ -192,7 +192,7 @@ std::string UIElements::drawBlockMenu(int window_width, int window_height, doubl
     view_base = glm::mat4(1.0f);
     view_base = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, -0.5f)) * view_base;
     view_base = glm::scale(glm::mat4(1.0f), glm::vec3(0.4f, 0.4f, 0.4f)) * view_base;
-    view_base = glm::rotate(glm::mat4(1.0f), glm::radians(200.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * view_base;
+    view_base = glm::rotate(glm::mat4(1.0f), glm::radians(20.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * view_base;
     view_base = glm::rotate(glm::mat4(1.0f), glm::radians(20.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * view_base;
     view_base = glm::rotate(glm::mat4(1.0f), (float)now, glm::vec3(0.0f, 1.0f, 0.0f)) * view_base;
     // view_base = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f)) * view_base;
@@ -214,7 +214,7 @@ std::string UIElements::drawBlockMenu(int window_width, int window_height, doubl
         } else {
             view = view_base;
         }
-        view = glm::translate(glm::mat4(1.0f), glm::vec3(cell_x + 0.5f, cell_y + 0.5f, 0.5f)) * view;
+        view = glm::translate(glm::mat4(1.0f), glm::vec3(cell_x + 0.5f, (num_cells - 1 - cell_y) + 0.5f, 0.5f)) * view;
         blocklistShader.setMat4("view", view);
     
         if (selected) selected_block = bt_list[cell];

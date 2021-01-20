@@ -23,6 +23,7 @@ Chunk::Chunk(ChunkPos p)
     
     needs_save = false;
     last_save = ref::currentTime();
+    time_unloaded = 0;
     
     //view = std::unique_ptr<ChunkView>(new ChunkView(this));
 }
@@ -123,6 +124,14 @@ void Chunk::setBlock(const BlockPos& pos, const std::string& name, int rotation)
     needs_save = true;
 }
 
+void Chunk::genBlock(const BlockPos& pos, const std::string& name)
+{
+    uint16_t index = chunkBlockIndex(pos);
+    uint16_t block_id = getBlockID(name);
+    block_storage[index] = block_id;
+    needs_save = true;
+}
+
 void Chunk::requestVisualUpdate(Block *block)
 {
     if (!view) return;
@@ -135,27 +144,45 @@ void Chunk::updateBlock(const BlockPos& pos)
     BlockPtr block = getBlock(pos);
     if (block) block->updateEvent();
     
+    // repaintBlock(pos);
+    
+    // if (!view) return;
+    // int index = chunkBlockIndex(pos);
+    // view->block_visual_modified[index] = true;
+    // view->chunk_visual_modified = true;
+}
+
+void Chunk::repaintBlock(const BlockPos& pos)
+{
+    if (time_unloaded) return;
+    
+    BlockPtr block = getBlock(pos);
+    if (block) block->repaintEvent();
+    
     if (!view) return;
     int index = chunkBlockIndex(pos);
     view->block_visual_modified[index] = true;
     view->chunk_visual_modified = true;
 }
 
-void Chunk::updateAllBlocks()
+void Chunk::updateAllBlocks(bool no_load)
 {
+    std::vector<BlockPos> all_pos;
     for (int i=0; i<sizes::chunk_storage_size; i++) {
-        BlockPos p(decodeIndex(i));
-        World::instance.updateBlock(p);
+        if (block_storage[i])
+            all_pos.push_back(decodeIndex(i));
     }
-#if 0
+    World::instance.updateBlocks(all_pos, no_load);
+}
+
+void Chunk::repaintAllBlocks()
+{
+    std::vector<BlockPos> all_pos;
     for (int i=0; i<sizes::chunk_storage_size; i++) {
-        BlockPtr block = getBlock(i);
-        if (block) block->updateEvent();
+        if (block_storage[i])
+            all_pos.push_back(decodeIndex(i));
     }
-    
-    if (!view) return;
-    view->markChunkUpdated();
-#endif
+    World::instance.repaintBlocks(all_pos);
 }
 
 int Chunk::getVisibleFaces(Block *block)
@@ -355,6 +382,21 @@ bool Chunk::load()
     return true;
 }
 
+void Chunk::generate()
+{
+    if (chunk_pos.Y != 0) return;
+    
+    BlockPos corner(BlockPos::getBlockPos(chunk_pos));
+    BlockPos p;
+    for (int z=0; z<16; z++) {
+        for (int x=0; x<16; x++) {
+            p.Y = 0;
+            p.X = corner.X + x;
+            p.Z = corner.Z + z;
+            genBlock(p, "dirt");
+        }
+    }
+}
 
 void Chunk::tickAllBlocks(double elapsed_time)
 {
