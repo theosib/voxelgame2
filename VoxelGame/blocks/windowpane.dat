@@ -1,0 +1,7 @@
+include: pane_faces
+include: pane_texture
+include: pane_collision
+texture: transgray
+normals: auto
+solid-faces: north
+translucent: true
